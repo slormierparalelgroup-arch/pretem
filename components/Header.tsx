@@ -1,6 +1,7 @@
 "use client";
 
 import { Menu, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { LanguageSelect, useLanguage } from "@/components/LanguageProvider";
@@ -12,7 +13,7 @@ export function Header() {
   return (
     <header className="site-header">
       <Link className="brand" href="/">
-        PRETEM
+        <Image alt="PRETEM Credit" height={46} priority src="/images/pretem-logo.jpeg" width={190} />
       </Link>
       <div className="header-actions">
         <LanguageSelect />
