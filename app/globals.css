@@ -156,7 +156,7 @@ main {
 .hero-visual {
   background:
     linear-gradient(135deg, rgba(11, 61, 117, 0.82), rgba(73, 168, 245, 0.28), rgba(245, 158, 66, 0.3)),
-    url("https://source.unsplash.com/1200x900/?black-business-people,finance");
+    url("/images/pretem-cover.png");
   background-position: center;
   background-size: cover;
   border-radius: var(--radius);
