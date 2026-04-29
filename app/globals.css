@@ -30,7 +30,7 @@ a {
 }
 
 main {
-  min-height: calc(100vh - 72px);
+  min-height: calc(100vh - 84px);
 }
 
 .site-header {
@@ -39,7 +39,7 @@ main {
   border-bottom: 1px solid var(--line);
   display: flex;
   gap: 20px;
-  height: 72px;
+  min-height: 84px;
   justify-content: space-between;
   padding: 0 32px;
   position: sticky;
@@ -58,7 +58,7 @@ main {
 
 .brand img {
   display: block;
-  height: 46px;
+  height: 58px;
   object-fit: contain;
   width: auto;
 }
@@ -390,6 +390,11 @@ select:focus {
     height: auto;
     gap: 12px;
     padding: 18px 20px;
+  }
+
+  .brand img {
+    height: 46px;
+    max-width: min(76vw, 320px);
   }
 
   nav {

@@ -13,7 +13,7 @@ export function Header() {
   return (
     <header className="site-header">
       <Link className="brand" href="/">
-        <Image alt="PRETEM Credit" height={46} priority src="/images/pretem-logo.jpeg" width={190} />
+        <Image alt="PRETEM Credit" height={58} priority src="/images/pretem-logo-transparent.png" width={308} />
       </Link>
       <div className="header-actions">
         <LanguageSelect />
