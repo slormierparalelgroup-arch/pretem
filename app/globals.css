@@ -51,6 +51,17 @@ main {
   font-size: 24px;
   font-weight: 800;
   letter-spacing: 0;
+  position: relative;
+}
+
+.brand::after {
+  background: var(--accent-2);
+  border-radius: 999px;
+  content: "";
+  display: block;
+  height: 4px;
+  margin-top: 3px;
+  width: 34px;
 }
 
 nav {
@@ -139,6 +150,14 @@ button {
   padding: 0 16px;
 }
 
+.actions .button:first-child,
+.actions button:first-child,
+form > button {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+  color: #1b2430;
+}
+
 .button.secondary,
 button.secondary {
   background: white;
@@ -147,7 +166,7 @@ button.secondary {
 
 .button:hover,
 button:hover {
-  border-color: #082b53;
+  border-color: var(--accent-2);
 }
 
 .button.secondary:hover,
@@ -232,6 +251,13 @@ select {
   width: 100%;
 }
 
+input:focus,
+select:focus {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 3px rgba(255, 138, 28, 0.18);
+  outline: none;
+}
+
 .stepper {
   display: grid;
   gap: 10px;
@@ -250,8 +276,8 @@ select {
 }
 
 .step.active {
-  background: var(--accent);
-  color: white;
+  background: var(--accent-2);
+  color: #1b2430;
 }
 
 .toolbar {
@@ -273,8 +299,8 @@ select {
 }
 
 .status.pending {
-  background: #fff2c7;
-  color: #765500;
+  background: #fff0de;
+  color: #8b4300;
 }
 
 .status.approved,
