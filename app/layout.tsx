@@ -17,10 +17,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             __html: `
               body{margin:0;background:#f4f8fb;color:#0b1f3a;font-family:Arial,Helvetica,sans-serif}
               a{color:inherit;text-decoration:none}
-              .site-header{align-items:center;background:rgba(244,248,251,.96);border-bottom:1px solid #d6e3ef;display:flex;gap:24px;justify-content:space-between;padding:18px 32px;position:sticky;top:0;z-index:10}
+              .site-header{align-items:center;background:rgba(244,248,251,.96);border-bottom:1px solid #d6e3ef;display:flex;gap:20px;justify-content:space-between;padding:18px 32px;position:sticky;top:0;z-index:10}
               .brand{color:#0b3d75;font-size:24px;font-weight:800}
-              nav{display:flex;flex-wrap:wrap;gap:18px;color:#52657b;font-size:14px;font-weight:700}
+              .header-actions{align-items:center;display:flex;gap:12px}
               .language-select{align-items:center;display:flex;gap:8px;width:auto}
+              .menu-wrapper{position:relative}.menu-button{gap:8px;min-width:104px}.menu-panel{background:#fff;border:1px solid #d6e3ef;border-radius:8px;box-shadow:0 18px 42px rgba(11,31,58,.14);display:grid;font-size:15px;font-weight:800;gap:4px;min-width:210px;padding:8px;position:absolute;right:0;top:calc(100% + 10px);z-index:20}.menu-panel a{border-radius:6px;padding:11px 12px}
               .page{margin:0 auto;max-width:1120px;padding:48px 24px}
               .panel,.card{background:#fff;border:1px solid #d6e3ef;border-radius:8px}
               .panel{padding:24px}
@@ -30,7 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               .actions{display:flex;flex-wrap:wrap;gap:12px}
               .button,button{align-items:center;background:#ff8a1c;border:1px solid #ff8a1c;border-radius:8px;color:#1b2430;cursor:pointer;display:inline-flex;font-size:15px;font-weight:800;justify-content:center;min-height:44px;padding:0 16px}
               .button.secondary,button.secondary{background:#fff;color:#0b3d75}
-              @media(max-width:820px){.site-header{align-items:flex-start;flex-direction:column}.page{padding:28px 18px}}
+              @media(max-width:820px){.site-header{align-items:flex-start;flex-direction:column}.header-actions{justify-content:space-between;width:100%}.page{padding:28px 18px}}
             `
           }}
         />

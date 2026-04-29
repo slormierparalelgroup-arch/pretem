@@ -38,6 +38,7 @@ main {
   background: rgba(244, 248, 251, 0.96);
   border-bottom: 1px solid var(--line);
   display: flex;
+  gap: 20px;
   height: 72px;
   justify-content: space-between;
   padding: 0 32px;
@@ -64,12 +65,47 @@ main {
   width: 26px;
 }
 
-nav {
+.header-actions {
+  align-items: center;
   display: flex;
-  gap: 18px;
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 700;
+  gap: 12px;
+}
+
+.menu-wrapper {
+  position: relative;
+}
+
+.menu-button {
+  gap: 8px;
+  min-width: 104px;
+}
+
+.menu-panel {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 42px rgba(11, 31, 58, 0.14);
+  color: var(--text);
+  display: grid;
+  font-size: 15px;
+  font-weight: 800;
+  gap: 4px;
+  min-width: 210px;
+  padding: 8px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 20;
+}
+
+.menu-panel a {
+  border-radius: 6px;
+  padding: 11px 12px;
+}
+
+.menu-panel a:hover {
+  background: var(--surface-2);
+  color: var(--accent);
 }
 
 .language-select {
@@ -359,7 +395,16 @@ select:focus {
   }
 
   nav {
-    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .header-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .menu-panel {
+    right: 0;
   }
 
   .hero,
