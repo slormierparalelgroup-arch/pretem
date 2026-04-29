@@ -98,8 +98,7 @@ export default function RequestLoanPage() {
 
     if (error) throw error;
 
-    const { data } = supabase.storage.from("selfies").getPublicUrl(path);
-    return data.publicUrl;
+    return path;
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {

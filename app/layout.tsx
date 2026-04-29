@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "PRETEM",
-  description: "Micro-loans for immigrant communities"
+  description: "Micro-loans for the Haitian community"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

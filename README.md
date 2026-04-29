@@ -1,6 +1,6 @@
 # PRETEM
 
-PRETEM is a Next.js and Supabase micro-loan platform for immigrants. Users can create an account, request a loan, upload verification images, track status by reference, and view their loan history. Admins can review requests, inspect uploaded images, approve or reject loans, and mark loans as paid.
+PRETEM is a Next.js and Supabase micro-loan platform for the Haitian community. Users can create an account, request a loan, upload verification images, track status by reference, and view their loan history. Admins can review requests, inspect uploaded images, approve or reject loans, and mark loans as paid.
 
 ## Setup
 
@@ -51,5 +51,13 @@ The app expects:
 
 - `loans` table with user, amount, repayment, status, due date, payment, and verification image URL fields
 - `profiles` table with `role` and `credit_score`
-- public `selfies` storage bucket
+- private `selfies` storage bucket
 - RLS policies from `supabase/schema.sql`
+
+## Sensitive ID Protection
+
+- Keep the `selfies` bucket private.
+- Store file paths in the database, not public image URLs.
+- Use short-lived signed URLs when admins review verification images.
+- Never expose the Supabase `service_role` key in the frontend or Vercel public environment variables.
+- Limit admin access to trusted accounts and keep RLS enabled.

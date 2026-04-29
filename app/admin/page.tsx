@@ -10,10 +10,16 @@ import { supabase } from "@/lib/supabase";
 
 const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "rejected", "paid"];
 
+type AdminLoan = Loan & {
+  signed_id_photo_url?: string | null;
+  signed_selfie_url?: string | null;
+  signed_selfie_with_id_url?: string | null;
+};
+
 export default function AdminPage() {
   const router = useRouter();
   const { t } = useLanguage();
-  const [loans, setLoans] = useState<Loan[]>([]);
+  const [loans, setLoans] = useState<AdminLoan[]>([]);
   const [status, setStatus] = useState<"all" | LoanStatus>("pending");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -59,7 +65,33 @@ export default function AdminPage() {
       setMessage(error.message);
       return;
     }
-    setLoans(data || []);
+
+    const loansWithSignedUrls = await Promise.all((data || []).map(addSignedVerificationUrls));
+    setLoans(loansWithSignedUrls);
+  }
+
+  async function signVerificationPath(path: string | null) {
+    if (!path) return null;
+    if (path.startsWith("http")) return path;
+
+    const { data, error } = await supabase.storage.from("selfies").createSignedUrl(path, 60 * 10);
+    if (error) return null;
+    return data.signedUrl;
+  }
+
+  async function addSignedVerificationUrls(loan: Loan): Promise<AdminLoan> {
+    const [signedIdPhoto, signedSelfie, signedSelfieWithId] = await Promise.all([
+      signVerificationPath(loan.id_photo_url),
+      signVerificationPath(loan.selfie_url),
+      signVerificationPath(loan.selfie_with_id_url)
+    ]);
+
+    return {
+      ...loan,
+      signed_id_photo_url: signedIdPhoto,
+      signed_selfie_url: signedSelfie,
+      signed_selfie_with_id_url: signedSelfieWithId
+    };
   }
 
   async function updateStatus(id: string, nextStatus: LoanStatus) {
@@ -135,12 +167,12 @@ export default function AdminPage() {
                 </div>
 
                 <div className="thumbs">
-                  {loan.id_photo_url ? (
-                    <Image alt="ID document" height={180} src={loan.id_photo_url} width={240} />
+                  {loan.signed_id_photo_url ? (
+                    <Image alt="ID document" height={180} src={loan.signed_id_photo_url} width={240} />
                   ) : null}
-                  {loan.selfie_url ? <Image alt="Selfie" height={180} src={loan.selfie_url} width={240} /> : null}
-                  {loan.selfie_with_id_url ? (
-                    <Image alt="Selfie with ID" height={180} src={loan.selfie_with_id_url} width={240} />
+                  {loan.signed_selfie_url ? <Image alt="Selfie" height={180} src={loan.signed_selfie_url} width={240} /> : null}
+                  {loan.signed_selfie_with_id_url ? (
+                    <Image alt="Selfie with ID" height={180} src={loan.signed_selfie_with_id_url} width={240} />
                   ) : null}
                 </div>
 

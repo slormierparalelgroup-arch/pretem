@@ -1,14 +1,15 @@
 :root {
-  --bg: #f7f8f4;
+  --bg: #f4f8fb;
   --surface: #ffffff;
-  --surface-2: #eef4f1;
-  --text: #17211d;
-  --muted: #63726b;
-  --line: #dce4df;
-  --accent: #116149;
-  --accent-2: #e4aa3b;
+  --surface-2: #eaf4ff;
+  --text: #0b1f3a;
+  --muted: #52657b;
+  --line: #d6e3ef;
+  --accent: #0b3d75;
+  --accent-2: #ff8a1c;
+  --blue-soft: #49a8f5;
   --danger: #b3261e;
-  --ok: #176b35;
+  --ok: #147950;
   --radius: 8px;
 }
 
@@ -34,7 +35,7 @@ main {
 
 .site-header {
   align-items: center;
-  background: rgba(247, 248, 244, 0.96);
+  background: rgba(244, 248, 251, 0.96);
   border-bottom: 1px solid var(--line);
   display: flex;
   height: 72px;
@@ -107,7 +108,7 @@ nav {
 
 .hero-visual {
   background:
-    linear-gradient(135deg, rgba(17, 97, 73, 0.88), rgba(23, 33, 29, 0.7)),
+    linear-gradient(135deg, rgba(11, 61, 117, 0.92), rgba(73, 168, 245, 0.55), rgba(255, 138, 28, 0.72)),
     url("https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&w=1200&q=80");
   background-position: center;
   background-size: cover;
@@ -142,6 +143,16 @@ button {
 button.secondary {
   background: white;
   color: var(--accent);
+}
+
+.button:hover,
+button:hover {
+  border-color: #082b53;
+}
+
+.button.secondary:hover,
+button.secondary:hover {
+  background: var(--surface-2);
 }
 
 button.danger {

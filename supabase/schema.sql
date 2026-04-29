@@ -124,8 +124,8 @@ using (public.is_admin())
 with check (public.is_admin());
 
 insert into storage.buckets (id, name, public)
-values ('selfies', 'selfies', true)
-on conflict (id) do update set public = excluded.public;
+values ('selfies', 'selfies', false)
+on conflict (id) do update set public = false;
 
 drop policy if exists "Users upload verification images" on storage.objects;
 create policy "Users upload verification images"
@@ -141,7 +141,8 @@ using (bucket_id = 'selfies' and owner = auth.uid())
 with check (bucket_id = 'selfies' and owner = auth.uid());
 
 drop policy if exists "Public reads verification images" on storage.objects;
-create policy "Public reads verification images"
+drop policy if exists "Users and admins read verification images" on storage.objects;
+create policy "Users and admins read verification images"
 on storage.objects for select
-to public
-using (bucket_id = 'selfies');
+to authenticated
+using (bucket_id = 'selfies' and (owner = auth.uid() or public.is_admin()));

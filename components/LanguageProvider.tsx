@@ -32,7 +32,7 @@ const dictionaries: Record<Language, Dictionary> = {
     haitiAccountName: "Non sou kont lan",
     haitiPhoneHelp: "MonCash dwe se Digicel. NatCash dwe se Natcom.",
     heroBody:
-      "Yon platfòm mikwo-prè pratik pou imigran mande lajan, fini verifikasyon idantite, epi swiv desizyon ak yon nimewo referans klè.",
+      "Yon platfòm mikwo-prè pratik pou kominote ayisyèn nan mande lajan, fini verifikasyon idantite, epi swiv desizyon ak yon nimewo referans klè.",
     idPhoto: "Foto pyès idantite",
     identityChecksBody: "Telechaje pyès idantite, selfie, ak selfie ak pyès idantite nan Supabase Storage.",
     identityChecksTitle: "Verifikasyon idantite",
@@ -103,7 +103,7 @@ const dictionaries: Record<Language, Dictionary> = {
     haitiAccountName: "Name on account",
     haitiPhoneHelp: "MonCash must be a Digicel number. NatCash must be a Natcom number.",
     heroBody:
-      "A practical micro-loan platform for immigrants to request funds, complete identity verification, and track decisions with a clear reference number.",
+      "A practical micro-loan platform built for the Haitian community to request funds, complete identity verification, and track decisions with a clear reference number.",
     idPhoto: "ID photo",
     identityChecksBody: "Upload ID, selfie, and selfie with ID into Supabase Storage.",
     identityChecksTitle: "Identity checks",
@@ -174,7 +174,7 @@ const dictionaries: Record<Language, Dictionary> = {
     haitiAccountName: "Nombre de la cuenta",
     haitiPhoneHelp: "MonCash debe ser Digicel. NatCash debe ser Natcom.",
     heroBody:
-      "Una plataforma práctica de micropréstamos para inmigrantes que permite solicitar fondos, completar la verificación de identidad y seguir decisiones con un número de referencia claro.",
+      "Una plataforma práctica de micropréstamos para la comunidad haitiana que permite solicitar fondos, completar la verificación de identidad y seguir decisiones con un número de referencia claro.",
     idPhoto: "Foto de identificación",
     identityChecksBody: "Sube identificación, selfie y selfie con identificación a Supabase Storage.",
     identityChecksTitle: "Verificación de identidad",
