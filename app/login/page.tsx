@@ -17,7 +17,7 @@ export default function LoginPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!isSupabaseConfigured) {
-      setMessage("Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local, then restart the dev server.");
+      setMessage(t("supabaseMissing"));
       return;
     }
 
@@ -48,8 +48,7 @@ export default function LoginPage() {
         </label>
         {!isSupabaseConfigured ? (
           <p className="notice">
-            Supabase is not configured yet. Create <strong>.env.local</strong> with your project URL and anon key,
-            then restart localhost.
+            {t("supabaseMissing")}
           </p>
         ) : null}
         {message ? <p className="notice">{message}</p> : null}

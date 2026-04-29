@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { FormEvent, useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { formatMoney, Loan } from "@/lib/loans";
-import { formatPayoutDetails, getPayoutMethodLabel } from "@/lib/payout";
+import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
 function RequestStatusContent() {
@@ -37,7 +37,7 @@ function RequestStatusContent() {
 
     if (!data) {
       setLoan(null);
-      setMessage("No loan request was found for that reference.");
+      setMessage(t("noRequestFound"));
       return;
     }
 
@@ -53,6 +53,10 @@ function RequestStatusContent() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     lookup();
+  }
+
+  function statusLabel(status: Loan["status"]) {
+    return t(`status${status.charAt(0).toUpperCase()}${status.slice(1)}`);
   }
 
   return (
@@ -78,7 +82,7 @@ function RequestStatusContent() {
               <h2>{loan.reference}</h2>
               <p className="muted">{loan.full_name}</p>
             </div>
-            <span className={`status ${loan.status}`}>{loan.status}</span>
+            <span className={`status ${loan.status}`}>{statusLabel(loan.status)}</span>
           </div>
           <div className="grid three">
             <div>
@@ -90,21 +94,21 @@ function RequestStatusContent() {
               <p className="muted">{t("repayment")}</p>
             </div>
             <div>
-              <strong>{loan.due_date ? new Date(loan.due_date).toLocaleDateString() : "Pending"}</strong>
+              <strong>{loan.due_date ? new Date(loan.due_date).toLocaleDateString() : t("pendingDue")}</strong>
               <p className="muted">{t("dueDate")}</p>
             </div>
             <div>
-              <strong>{loan.repayment_days ?? "?"} days</strong>
+              <strong>{loan.repayment_days ?? "?"} {t("dayUnit")}</strong>
               <p className="muted">
-                {loan.interest_rate != null ? `${Math.round(loan.interest_rate * 100)}% interest` : "Repayment period"}
+                {loan.interest_rate != null ? `${Math.round(loan.interest_rate * 100)}% ${t("interest").toLowerCase()}` : t("repaymentPeriod")}
               </p>
             </div>
             <div>
-              <strong>{loan.destination_country ?? "Destination"}</strong>
+              <strong>{getDestinationLabel(loan.destination_country, t)}</strong>
               <p className="muted">
-                {loan.currency ?? "Currency"} · {getPayoutMethodLabel(loan.payout_method)}
+                {loan.currency ?? t("currency")} · {getPayoutMethodLabel(loan.payout_method, t)}
               </p>
-              <p className="muted">{formatPayoutDetails(loan.payout_details)}</p>
+              <p className="muted">{formatPayoutDetails(loan.payout_details, t)}</p>
             </div>
           </div>
         </article>
@@ -115,8 +119,18 @@ function RequestStatusContent() {
 
 export default function RequestStatusPage() {
   return (
-    <Suspense fallback={<section className="page"><p className="notice">Loading...</p></section>}>
+    <Suspense fallback={<RequestStatusFallback />}>
       <RequestStatusContent />
     </Suspense>
+  );
+}
+
+function RequestStatusFallback() {
+  const { t } = useLanguage();
+
+  return (
+    <section className="page">
+      <p className="notice">{t("loadingTracker")}</p>
+    </section>
   );
 }

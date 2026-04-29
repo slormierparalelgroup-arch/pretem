@@ -53,7 +53,7 @@ export default function RequestLoanPage() {
     if (step === 0) return fullName.trim() && phone.trim();
     if (step === 1) {
       if (numericAmount <= 0) return false;
-      if (destinationCountry === "haiti") return haitiAccountName.trim() && mobileNumber.trim() && !validateHaitiPayoutPhone(payoutMethod, mobileNumber);
+      if (destinationCountry === "haiti") return haitiAccountName.trim() && mobileNumber.trim() && !validateHaitiPayoutPhone(payoutMethod, mobileNumber, t);
       if (destinationCountry === "usa") return receiver.trim();
       return bankName.trim() && accountName.trim() && clabe.trim();
     }
@@ -90,7 +90,7 @@ export default function RequestLoanPage() {
   }
 
   async function uploadLoanFile(file: File, reference: string, type: string) {
-    if (!userId) throw new Error("You must be logged in.");
+    if (!userId) throw new Error(t("useLoginFirst"));
 
     const extension = file.name.split(".").pop() || "jpg";
     const path = `${userId}/${reference}/${type}.${extension}`;
@@ -118,7 +118,7 @@ export default function RequestLoanPage() {
 
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + repaymentDays);
-      const phoneError = destinationCountry === "haiti" ? validateHaitiPayoutPhone(payoutMethod, mobileNumber) : "";
+      const phoneError = destinationCountry === "haiti" ? validateHaitiPayoutPhone(payoutMethod, mobileNumber, t) : "";
       if (phoneError) throw new Error(phoneError);
 
       const { error } = await supabase.from("loans").insert({
@@ -127,7 +127,7 @@ export default function RequestLoanPage() {
         phone: phone.trim(),
         amount: numericAmount,
         repayment,
-        destination_country: selectedCountry.label,
+        destination_country: selectedCountry.value,
         currency: selectedCountry.currency,
         payout_method: payoutMethod,
         payout_details: buildPayoutDetails(),
@@ -145,7 +145,7 @@ export default function RequestLoanPage() {
 
       router.push(`/request-status?reference=${encodeURIComponent(reference)}`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not submit loan request.");
+      setMessage(error instanceof Error ? error.message : t("submitLoanError"));
     } finally {
       setLoading(false);
     }
@@ -194,7 +194,7 @@ export default function RequestLoanPage() {
               <select value={repaymentDays} onChange={(event) => setRepaymentDays(Number(event.target.value) as RepaymentDays)}>
                 {repaymentOptions.map((option) => (
                   <option key={option.days} value={option.days}>
-                    {option.label} · {option.percentLabel} interest
+                    {option.days} {t("dayUnit")} · {option.percentLabel} {t("interest").toLowerCase()}
                   </option>
                 ))}
               </select>
@@ -202,9 +202,9 @@ export default function RequestLoanPage() {
             <label>
               {t("destinationCountry")}
               <select value={destinationCountry} onChange={(event) => updateDestinationCountry(event.target.value as DestinationCountry)}>
-                <option value="haiti">Haiti</option>
-                <option value="usa">USA</option>
-                <option value="mexico">Mexico</option>
+                <option value="haiti">{t("countryHaiti")}</option>
+                <option value="usa">{t("countryUsa")}</option>
+                <option value="mexico">{t("countryMexico")}</option>
               </select>
             </label>
             <label>
@@ -216,7 +216,7 @@ export default function RequestLoanPage() {
               <select value={payoutMethod} onChange={(event) => setPayoutMethod(event.target.value as PayoutMethod)}>
                 {selectedCountry.methods.map((method) => (
                   <option key={method.value} value={method.value}>
-                    {method.label}
+                    {t(method.labelKey)}
                   </option>
                 ))}
               </select>
@@ -232,7 +232,7 @@ export default function RequestLoanPage() {
                   <input value={mobileNumber} onChange={(event) => setMobileNumber(event.target.value)} required />
                 </label>
                 <p className="notice">
-                  {t("haitiPhoneHelp")} {mobileNumber ? validateHaitiPayoutPhone(payoutMethod, mobileNumber) : ""}
+                  {t("haitiPhoneHelp")} {mobileNumber ? validateHaitiPayoutPhone(payoutMethod, mobileNumber, t) : ""}
                 </p>
               </>
             ) : null}
@@ -260,7 +260,7 @@ export default function RequestLoanPage() {
             ) : null}
             <div className="notice">
               {t("interest")}: ${interest.toFixed(2)} · {t("totalPayback")}: ${repayment.toFixed(2)} · {t("dueIn")}{" "}
-              {repaymentDays} days
+              {repaymentDays} {t("dayUnit")}
             </div>
           </>
         ) : null}
@@ -284,8 +284,8 @@ export default function RequestLoanPage() {
 
         {step === 3 ? (
           <div className="notice">
-            <strong>{fullName}</strong> · ${numericAmount.toFixed(2)} · {repaymentDays} days ·{" "}
-            {selectedRepayment.percentLabel} {t("interest")} · {selectedCountry.label} ({selectedCountry.currency}) ·{" "}
+            <strong>{fullName}</strong> · ${numericAmount.toFixed(2)} · {repaymentDays} {t("dayUnit")} ·{" "}
+            {selectedRepayment.percentLabel} {t("interest").toLowerCase()} · {t(selectedCountry.labelKey)} ({selectedCountry.currency}) ·{" "}
             {t("totalPayback")}: ${repayment.toFixed(2)}.
           </div>
         ) : null}

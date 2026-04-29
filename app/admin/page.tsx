@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
-import { formatPayoutDetails, getPayoutMethodLabel } from "@/lib/payout";
+import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
 const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "rejected", "paid"];
@@ -46,7 +46,7 @@ export default function AdminPage() {
       const isAdmin = profile?.role === "admin" || adminEmails.includes(userData.user.email?.toLowerCase() || "");
 
       if (!isAdmin) {
-        setMessage("This account does not have admin access.");
+        setMessage(t("adminAccessDenied"));
         setLoading(false);
         return;
       }
@@ -110,6 +110,14 @@ export default function AdminPage() {
     router.push("/");
   }
 
+  function statusLabel(nextStatus: LoanStatus) {
+    return t(`status${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
+  }
+
+  function filterLabel(nextStatus: "all" | LoanStatus) {
+    return nextStatus === "all" ? t("allStatuses") : statusLabel(nextStatus);
+  }
+
   return (
     <section className="page">
       <div className="toolbar">
@@ -133,7 +141,7 @@ export default function AdminPage() {
               <select value={status} onChange={(event) => setStatus(event.target.value as "all" | LoanStatus)}>
                 {statuses.map((item) => (
                   <option key={item} value={item}>
-                    {item}
+                    {filterLabel(item)}
                   </option>
                 ))}
               </select>
@@ -150,20 +158,20 @@ export default function AdminPage() {
                       {loan.phone} · {loan.reference}
                     </p>
                     <p className="muted">
-                      {loan.destination_country ?? "Destination"} {loan.currency ? `(${loan.currency})` : ""} ·{" "}
-                      {getPayoutMethodLabel(loan.payout_method)}
+                      {getDestinationLabel(loan.destination_country, t)} {loan.currency ? `(${loan.currency})` : ""} ·{" "}
+                      {getPayoutMethodLabel(loan.payout_method, t)}
                     </p>
-                    <p className="muted">{formatPayoutDetails(loan.payout_details)}</p>
+                    <p className="muted">{formatPayoutDetails(loan.payout_details, t)}</p>
                   </div>
                   <div>{formatMoney(loan.amount)}</div>
                   <div>
                     <strong>{formatMoney(loan.repayment)}</strong>
                     <p className="muted">
-                      {loan.repayment_days ?? "?"} days ·{" "}
-                      {loan.interest_rate != null ? `${Math.round(loan.interest_rate * 100)}%` : "rate"}
+                      {loan.repayment_days ?? "?"} {t("dayUnit")} ·{" "}
+                      {loan.interest_rate != null ? `${Math.round(loan.interest_rate * 100)}%` : t("rate")}
                     </p>
                   </div>
-                  <span className={`status ${loan.status}`}>{loan.status}</span>
+                  <span className={`status ${loan.status}`}>{statusLabel(loan.status)}</span>
                 </div>
 
                 <div className="thumbs">
