@@ -12,11 +12,7 @@ export default function Home() {
       <div className="hero">
         <div>
           <h1>PRETEM</h1>
-          <p className="lead">
-            A practical micro-loan platform for immigrants to request funds,
-            complete identity verification, and track decisions with a clear
-            reference number.
-          </p>
+          <p className="lead">{t("heroBody")}</p>
           <div className="actions">
             <Link className="button" href="/login">
               {t("login")}
@@ -35,18 +31,18 @@ export default function Home() {
       <div className="grid three">
         <article className="card">
           <FileText size={24} />
-          <h3>Simple requests</h3>
-          <p className="muted">Submit basic contact details, amount, and repayment preview.</p>
+          <h3>{t("simpleRequestsTitle")}</h3>
+          <p className="muted">{t("simpleRequestsBody")}</p>
         </article>
         <article className="card">
           <ShieldCheck size={24} />
-          <h3>Identity checks</h3>
-          <p className="muted">Upload ID, selfie, and selfie with ID into Supabase Storage.</p>
+          <h3>{t("identityChecksTitle")}</h3>
+          <p className="muted">{t("identityChecksBody")}</p>
         </article>
         <article className="card">
           <BadgeCheck size={24} />
-          <h3>Admin review</h3>
-          <p className="muted">Admins can approve, reject, and track loan history.</p>
+          <h3>{t("adminReviewTitle")}</h3>
+          <p className="muted">{t("adminReviewBody")}</p>
         </article>
       </div>
     </section>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
 import { getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -11,6 +12,7 @@ const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "reje
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [status, setStatus] = useState<"all" | LoanStatus>("all");
   const [loading, setLoading] = useState(true);
@@ -50,22 +52,22 @@ export default function DashboardPage() {
     <section className="page">
       <div className="toolbar">
         <div>
-          <h1>My loans</h1>
-          <p className="muted">View your request history and repayment status.</p>
+          <h1>{t("myLoans")}</h1>
+          <p className="muted">{t("loanHistoryBody")}</p>
         </div>
         <div className="actions">
           <Link className="button" href="/request-loan">
-            New request
+            {t("newRequest")}
           </Link>
           <button className="secondary" onClick={signOut}>
-            Sign out
+            {t("signOut")}
           </button>
         </div>
       </div>
 
       <div className="toolbar">
         <label>
-          Filter by status
+          {t("filterByStatus")}
           <select value={status} onChange={(event) => setStatus(event.target.value as "all" | LoanStatus)}>
             {statuses.map((item) => (
               <option key={item} value={item}>
@@ -76,12 +78,12 @@ export default function DashboardPage() {
         </label>
       </div>
 
-      {loading ? <p className="notice">Loading loan history...</p> : null}
+      {loading ? <p className="notice">{t("loadingLoanHistory")}</p> : null}
 
       {!loading && filteredLoans.length === 0 ? (
         <div className="panel">
-          <h2>No loans found</h2>
-          <p className="muted">Once you request a loan, it will appear here.</p>
+          <h2>{t("noLoansFound")}</h2>
+          <p className="muted">{t("noLoansFoundBody")}</p>
         </div>
       ) : null}
 

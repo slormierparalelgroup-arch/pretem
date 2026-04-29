@@ -4,11 +4,13 @@ import { Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { FormEvent, useEffect, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { formatMoney, Loan } from "@/lib/loans";
 import { formatPayoutDetails, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
 function RequestStatusContent() {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const [reference, setReference] = useState(searchParams.get("reference") || "");
   const [loan, setLoan] = useState<Loan | null>(null);
@@ -56,14 +58,14 @@ function RequestStatusContent() {
   return (
     <section className="page">
       <form className="panel form" onSubmit={submit}>
-        <h1>Track a request</h1>
+        <h1>{t("requestStatusTitle")}</h1>
         <label>
-          Reference number
+          {t("referenceNumber")}
           <input value={reference} onChange={(event) => setReference(event.target.value.toUpperCase())} placeholder="PRE-1234-ABC" />
         </label>
         <button disabled={loading}>
           <Search size={18} />
-          {loading ? "Checking..." : "Check status"}
+          {loading ? t("checking") : t("checkStatus")}
         </button>
       </form>
 
@@ -81,15 +83,15 @@ function RequestStatusContent() {
           <div className="grid three">
             <div>
               <strong>{formatMoney(loan.amount)}</strong>
-              <p className="muted">Requested</p>
+              <p className="muted">{t("requested")}</p>
             </div>
             <div>
               <strong>{formatMoney(loan.repayment)}</strong>
-              <p className="muted">Repayment</p>
+              <p className="muted">{t("repayment")}</p>
             </div>
             <div>
               <strong>{loan.due_date ? new Date(loan.due_date).toLocaleDateString() : "Pending"}</strong>
-              <p className="muted">Due date</p>
+              <p className="muted">{t("dueDate")}</p>
             </div>
             <div>
               <strong>{loan.repayment_days ?? "?"} days</strong>
@@ -113,7 +115,7 @@ function RequestStatusContent() {
 
 export default function RequestStatusPage() {
   return (
-    <Suspense fallback={<section className="page"><p className="notice">Loading tracker...</p></section>}>
+    <Suspense fallback={<section className="page"><p className="notice">Loading...</p></section>}>
       <RequestStatusContent />
     </Suspense>
   );

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
 import { formatPayoutDetails, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -11,6 +12,7 @@ const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "reje
 
 export default function AdminPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [status, setStatus] = useState<"all" | LoanStatus>("pending");
   const [message, setMessage] = useState("");
@@ -80,22 +82,22 @@ export default function AdminPage() {
     <section className="page">
       <div className="toolbar">
         <div>
-          <h1>Admin dashboard</h1>
-          <p className="muted">Review requests, inspect verification uploads, and manage repayment state.</p>
+          <h1>{t("adminDashboard")}</h1>
+          <p className="muted">{t("reviewRequestsBody")}</p>
         </div>
         <button className="secondary" onClick={signOut}>
-          Sign out
+          {t("signOut")}
         </button>
       </div>
 
       {message ? <p className="notice">{message}</p> : null}
-      {loading ? <p className="notice">Loading admin data...</p> : null}
+      {loading ? <p className="notice">{t("loadingAdminData")}</p> : null}
 
       {!loading && !message ? (
         <>
           <div className="toolbar">
             <label>
-              Filter by status
+              {t("filterByStatus")}
               <select value={status} onChange={(event) => setStatus(event.target.value as "all" | LoanStatus)}>
                 {statuses.map((item) => (
                   <option key={item} value={item}>
@@ -143,12 +145,12 @@ export default function AdminPage() {
                 </div>
 
                 <div className="actions" style={{ marginTop: 14 }}>
-                  <button onClick={() => updateStatus(loan.id, "approved")}>Approve</button>
+                  <button onClick={() => updateStatus(loan.id, "approved")}>{t("approve")}</button>
                   <button className="danger" onClick={() => updateStatus(loan.id, "rejected")}>
-                    Reject
+                    {t("reject")}
                   </button>
                   <button className="secondary" onClick={() => updateStatus(loan.id, "paid")}>
-                    Mark paid
+                    {t("markPaid")}
                   </button>
                 </div>
               </article>
