@@ -2,11 +2,27 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { calculateInterest, calculateRepayment, generateReference, getRepaymentOption, repaymentOptions, RepaymentDays } from "@/lib/loans";
 import { DestinationCountry, getCountryOption, PayoutMethod, validateHaitiPayoutPhone } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
+
+type SupabaseLikeError = {
+  message?: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+};
+
+type CaptureFieldProps = {
+  accept?: string;
+  file: File | null;
+  label: string;
+  name: string;
+  onChange: (file: File | null) => void;
+  t: (key: string) => string;
+};
 
 export default function RequestLoanPage() {
   const router = useRouter();
@@ -89,6 +105,15 @@ export default function RequestLoanPage() {
     };
   }
 
+  function formatSubmitError(error: unknown) {
+    if (!error || typeof error !== "object") return t("submitLoanError");
+
+    const supabaseError = error as SupabaseLikeError;
+    return [supabaseError.message, supabaseError.details, supabaseError.hint, supabaseError.code]
+      .filter(Boolean)
+      .join(" ");
+  }
+
   async function uploadLoanFile(file: File, reference: string, type: string) {
     if (!userId) throw new Error(t("useLoginFirst"));
 
@@ -145,7 +170,7 @@ export default function RequestLoanPage() {
 
       router.push(`/request-status?reference=${encodeURIComponent(reference)}`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t("submitLoanError"));
+      setMessage(formatSubmitError(error));
     } finally {
       setLoading(false);
     }
@@ -267,18 +292,9 @@ export default function RequestLoanPage() {
 
         {step === 2 ? (
           <>
-            <label>
-              {t("idPhoto")}
-              <input accept="image/*" type="file" onChange={(event) => setIdPhoto(event.target.files?.[0] ?? null)} required />
-            </label>
-            <label>
-              {t("selfie")}
-              <input accept="image/*" type="file" onChange={(event) => setSelfie(event.target.files?.[0] ?? null)} required />
-            </label>
-            <label>
-              {t("selfieWithId")}
-              <input accept="image/*" type="file" onChange={(event) => setSelfieWithId(event.target.files?.[0] ?? null)} required />
-            </label>
+            <CameraCaptureField file={idPhoto} label={t("idPhoto")} name="id-photo" onChange={setIdPhoto} t={t} />
+            <CameraCaptureField file={selfie} label={t("selfie")} name="selfie" onChange={setSelfie} t={t} />
+            <CameraCaptureField file={selfieWithId} label={t("selfieWithId")} name="selfie-with-id" onChange={setSelfieWithId} t={t} />
           </>
         ) : null}
 
@@ -311,5 +327,88 @@ export default function RequestLoanPage() {
         </div>
       </form>
     </section>
+  );
+}
+
+function CameraCaptureField({ file, label, name, onChange, t }: CaptureFieldProps) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+
+  async function openCamera() {
+    setCameraError("");
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: name === "selfie" ? "user" : "environment" },
+        audio: false
+      });
+
+      streamRef.current = stream;
+      setCameraOpen(true);
+
+      window.setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 0);
+    } catch {
+      setCameraError(t("cameraAccessError"));
+    }
+  }
+
+  function closeCamera() {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setCameraOpen(false);
+  }
+
+  function capturePhoto() {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      onChange(new File([blob], `${name}.jpg`, { type: "image/jpeg" }));
+      closeCamera();
+    }, "image/jpeg", 0.92);
+  }
+
+  useEffect(() => closeCamera, []);
+
+  return (
+    <div className="capture-field">
+      <label>
+        {label}
+        <input accept="image/*" capture="environment" type="file" onChange={(event) => onChange(event.target.files?.[0] ?? null)} required={!file} />
+      </label>
+
+      <div className="actions">
+        <button className="secondary" onClick={cameraOpen ? closeCamera : openCamera} type="button">
+          {cameraOpen ? t("closeCamera") : t("openCamera")}
+        </button>
+      </div>
+
+      {file ? <p className="notice">{t("selectedFile")}: {file.name}</p> : null}
+      {cameraError ? <p className="notice">{cameraError}</p> : null}
+
+      {cameraOpen ? (
+        <div className="camera-panel">
+          <video aria-label={t("cameraPreview")} autoPlay muted playsInline ref={videoRef} />
+          <button type="button" onClick={capturePhoto}>
+            {t("capturePhoto")}
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }
