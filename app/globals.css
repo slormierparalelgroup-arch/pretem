@@ -155,8 +155,8 @@ main {
 
 .hero-visual {
   background:
-    linear-gradient(135deg, rgba(11, 61, 117, 0.92), rgba(73, 168, 245, 0.55), rgba(255, 138, 28, 0.72)),
-    url("https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&w=1200&q=80");
+    linear-gradient(135deg, rgba(11, 61, 117, 0.82), rgba(73, 168, 245, 0.28), rgba(245, 158, 66, 0.3)),
+    url("https://source.unsplash.com/1200x900/?black-business-people,finance");
   background-position: center;
   background-size: cover;
   border-radius: var(--radius);

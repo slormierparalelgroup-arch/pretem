@@ -32,7 +32,7 @@ const dictionaries: Record<Language, Dictionary> = {
     haitiAccountName: "Non sou kont lan",
     haitiPhoneHelp: "MonCash dwe se Digicel. NatCash dwe se Natcom.",
     heroBody:
-      "on platfòm kredi ki fet pou kominote ayisyen an prete lajan, verifye istwa kredi, epi swiv desizyon ak yon nimewo referans klè.",
+      "On platfòm kredi ki fet pou kominote ayisyen an prete lajan, verifye istwa kredi, epi swiv desizyon ak yon nimewo referans klè.",
     idPhoto: "Foto pyès idantite",
     identityChecksBody: "Telechaje pyès idantite, selfie, ak selfie ak pyès idantite nan Supabase Storage.",
     identityChecksTitle: "Verifikasyon idantite",
