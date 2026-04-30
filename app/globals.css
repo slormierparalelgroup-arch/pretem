@@ -394,6 +394,15 @@ button.compact {
   width: 100%;
 }
 
+.thumb-card {
+  display: grid;
+  gap: 8px;
+}
+
+.thumb-card strong {
+  font-size: 13px;
+}
+
 .notice {
   background: var(--surface-2);
   border-radius: var(--radius);

@@ -153,6 +153,92 @@ export default function AdminPage() {
     return t(`verification${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
   }
 
+  function verificationImages(loan: AdminLoan) {
+    return [
+      { label: t("idPhoto"), url: loan.signed_id_photo_url },
+      { label: t("selfie"), url: loan.signed_selfie_url },
+      { label: t("selfieWithId"), url: loan.signed_selfie_with_id_url }
+    ].filter((image): image is { label: string; url: string } => Boolean(image.url));
+  }
+
+  function openImage(url: string) {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function downloadImage(url: string, filename: string) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename.replace(/[^a-z0-9.-]+/gi, "-").toLowerCase();
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function escapeHtml(value: string) {
+    return value
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function printVerificationPacket(loan: AdminLoan) {
+    const images = verificationImages(loan);
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!printWindow) {
+      setMessage(t("printWindowBlocked"));
+      return;
+    }
+
+    const imageHtml = images
+      .map(
+        (image) => `
+          <section class="photo">
+            <h2>${escapeHtml(image.label)}</h2>
+            <img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.label)}" />
+          </section>
+        `
+      )
+      .join("");
+
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <title>PRETEM ${loan.reference}</title>
+          <style>
+            body { color: #0b1f3a; font-family: Arial, sans-serif; margin: 28px; }
+            h1 { margin: 0 0 6px; }
+            .meta { border-bottom: 1px solid #d6e3ef; display: grid; gap: 6px; margin-bottom: 20px; padding-bottom: 16px; }
+            .photo { break-inside: avoid; margin: 0 0 24px; page-break-inside: avoid; }
+            .photo h2 { font-size: 16px; margin: 0 0 10px; }
+            img { border: 1px solid #d6e3ef; display: block; max-height: 820px; max-width: 100%; object-fit: contain; }
+          </style>
+        </head>
+        <body>
+          <h1>PRETEM Verification</h1>
+          <div class="meta">
+            <strong>${escapeHtml(loan.full_name)}</strong>
+            <span>${escapeHtml(loan.phone)}</span>
+            <span>${escapeHtml(loan.reference)}</span>
+            <span>${escapeHtml(statusLabel(loan.status))} · ${escapeHtml(verificationLabel(loan.verification_status))}</span>
+            <span>${formatMoney(loan.amount)} · ${formatMoney(loan.repayment)}</span>
+          </div>
+          ${imageHtml}
+          <script>
+            window.addEventListener("load", () => {
+              window.focus();
+              window.print();
+            });
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  }
+
   return (
     <section className="page">
       <div className="toolbar">
@@ -213,16 +299,28 @@ export default function AdminPage() {
                 </div>
 
                 <div className="thumbs">
-                  {loan.signed_id_photo_url ? (
-                    <Image alt="ID document" height={180} src={loan.signed_id_photo_url} width={240} />
-                  ) : null}
-                  {loan.signed_selfie_url ? <Image alt="Selfie" height={180} src={loan.signed_selfie_url} width={240} /> : null}
-                  {loan.signed_selfie_with_id_url ? (
-                    <Image alt="Selfie with ID" height={180} src={loan.signed_selfie_with_id_url} width={240} />
-                  ) : null}
+                  {verificationImages(loan).map((image) => (
+                    <div className="thumb-card" key={image.label}>
+                      <Image alt={image.label} height={180} src={image.url} width={240} />
+                      <strong>{image.label}</strong>
+                      <div className="actions">
+                        <button className="secondary compact" onClick={() => openImage(image.url)}>
+                          {t("open")}
+                        </button>
+                        <button className="secondary compact" onClick={() => downloadImage(image.url, `${loan.reference}-${image.label}.jpg`)}>
+                          {t("download")}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="actions" style={{ marginTop: 14 }}>
+                  {verificationImages(loan).length ? (
+                    <button className="secondary" onClick={() => printVerificationPacket(loan)}>
+                      {t("printVerification")}
+                    </button>
+                  ) : null}
                   <button className="secondary" onClick={() => updateVerificationStatus(loan.user_id, "verified")}>
                     {t("verifyIdentityAction")}
                   </button>
