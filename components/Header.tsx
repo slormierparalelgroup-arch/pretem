@@ -3,12 +3,37 @@
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LanguageSelect, useLanguage } from "@/components/LanguageProvider";
+import { supabase } from "@/lib/supabase";
 
 export function Header() {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (!user) {
+        setShowAdmin(false);
+        return;
+      }
+
+      const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+        .split(",")
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean);
+
+      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+      setShowAdmin(profile?.role === "admin" || adminEmails.includes(user.email?.toLowerCase() || ""));
+    }
+
+    checkAdmin();
+    const { data } = supabase.auth.onAuthStateChange(() => checkAdmin());
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   return (
     <header className="site-header">
@@ -42,9 +67,14 @@ export function Header() {
               <Link href="/dashboard" onClick={() => setIsOpen(false)}>
                 {t("dashboard")}
               </Link>
-              <Link href="/admin" onClick={() => setIsOpen(false)}>
-                {t("admin")}
+              <Link href="/verify-identity" onClick={() => setIsOpen(false)}>
+                {t("verifyIdentity")}
               </Link>
+              {showAdmin ? (
+                <Link href="/admin" onClick={() => setIsOpen(false)}>
+                  {t("admin")}
+                </Link>
+              ) : null}
             </nav>
           ) : null}
         </div>

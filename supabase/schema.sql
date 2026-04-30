@@ -5,8 +5,28 @@ create table if not exists public.profiles (
   email text,
   role text not null default 'user' check (role in ('user', 'admin')),
   credit_score integer not null default 500,
+  verification_status text not null default 'not_submitted' check (verification_status in ('not_submitted', 'pending', 'verified', 'rejected')),
+  id_photo_url text,
+  selfie_url text,
+  selfie_with_id_url text,
+  verified_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table public.profiles
+add column if not exists verification_status text not null default 'not_submitted' check (verification_status in ('not_submitted', 'pending', 'verified', 'rejected'));
+
+alter table public.profiles
+add column if not exists id_photo_url text;
+
+alter table public.profiles
+add column if not exists selfie_url text;
+
+alter table public.profiles
+add column if not exists selfie_with_id_url text;
+
+alter table public.profiles
+add column if not exists verified_at timestamptz;
 
 create table if not exists public.loans (
   id uuid primary key default gen_random_uuid(),
@@ -84,6 +104,35 @@ as $$
       and role = 'admin'
   );
 $$;
+
+create or replace function public.submit_identity_verification(
+  id_photo_path text,
+  selfie_path text,
+  selfie_with_id_path text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email)
+  values (auth.uid(), auth.jwt() ->> 'email')
+  on conflict (id) do nothing;
+
+  update public.profiles
+  set
+    id_photo_url = id_photo_path,
+    selfie_url = selfie_path,
+    selfie_with_id_url = selfie_with_id_path,
+    verification_status = 'pending',
+    verified_at = null
+  where id = auth.uid();
+end;
+$$;
+
+revoke all on function public.submit_identity_verification(text, text, text) from public;
+grant execute on function public.submit_identity_verification(text, text, text) to authenticated;
 
 drop policy if exists "Users can read their profile" on public.profiles;
 create policy "Users can read their profile"

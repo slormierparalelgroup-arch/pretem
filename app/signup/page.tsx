@@ -31,7 +31,7 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/request-loan");
+    router.push("/verify-identity");
   }
 
   return (

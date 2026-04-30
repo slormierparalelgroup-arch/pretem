@@ -11,9 +11,18 @@ import { supabase } from "@/lib/supabase";
 const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "rejected", "paid"];
 
 type AdminLoan = Loan & {
+  verification_status?: "not_submitted" | "pending" | "verified" | "rejected";
   signed_id_photo_url?: string | null;
   signed_selfie_url?: string | null;
   signed_selfie_with_id_url?: string | null;
+};
+
+type ProfileVerification = {
+  id: string;
+  verification_status: "not_submitted" | "pending" | "verified" | "rejected";
+  id_photo_url: string | null;
+  selfie_url: string | null;
+  selfie_with_id_url: string | null;
 };
 
 export default function AdminPage() {
@@ -66,7 +75,16 @@ export default function AdminPage() {
       return;
     }
 
-    const loansWithSignedUrls = await Promise.all((data || []).map(addSignedVerificationUrls));
+    const userIds = [...new Set((data || []).map((loan) => loan.user_id))];
+    const { data: profiles } = userIds.length
+      ? await supabase
+          .from("profiles")
+          .select("id, verification_status, id_photo_url, selfie_url, selfie_with_id_url")
+          .in("id", userIds)
+      : { data: [] };
+
+    const profileByUserId = new Map((profiles || []).map((profile) => [profile.id, profile as ProfileVerification]));
+    const loansWithSignedUrls = await Promise.all((data || []).map((loan) => addSignedVerificationUrls(loan, profileByUserId.get(loan.user_id))));
     setLoans(loansWithSignedUrls);
   }
 
@@ -79,15 +97,16 @@ export default function AdminPage() {
     return data.signedUrl;
   }
 
-  async function addSignedVerificationUrls(loan: Loan): Promise<AdminLoan> {
+  async function addSignedVerificationUrls(loan: Loan, profile?: ProfileVerification): Promise<AdminLoan> {
     const [signedIdPhoto, signedSelfie, signedSelfieWithId] = await Promise.all([
-      signVerificationPath(loan.id_photo_url),
-      signVerificationPath(loan.selfie_url),
-      signVerificationPath(loan.selfie_with_id_url)
+      signVerificationPath(profile?.id_photo_url || loan.id_photo_url),
+      signVerificationPath(profile?.selfie_url || loan.selfie_url),
+      signVerificationPath(profile?.selfie_with_id_url || loan.selfie_with_id_url)
     ]);
 
     return {
       ...loan,
+      verification_status: profile?.verification_status,
       signed_id_photo_url: signedIdPhoto,
       signed_selfie_url: signedSelfie,
       signed_selfie_with_id_url: signedSelfieWithId
@@ -98,6 +117,17 @@ export default function AdminPage() {
     setMessage("");
     const patch = nextStatus === "paid" ? { status: nextStatus, paid_at: new Date().toISOString() } : { status: nextStatus };
     const { error } = await supabase.from("loans").update(patch).eq("id", id);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    await refreshLoans();
+  }
+
+  async function updateVerificationStatus(userId: string, nextStatus: "verified" | "rejected") {
+    setMessage("");
+    const patch = nextStatus === "verified" ? { verification_status: nextStatus, verified_at: new Date().toISOString() } : { verification_status: nextStatus, verified_at: null };
+    const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
     if (error) {
       setMessage(error.message);
       return;
@@ -116,6 +146,11 @@ export default function AdminPage() {
 
   function filterLabel(nextStatus: "all" | LoanStatus) {
     return nextStatus === "all" ? t("allStatuses") : statusLabel(nextStatus);
+  }
+
+  function verificationLabel(nextStatus?: AdminLoan["verification_status"]) {
+    if (!nextStatus) return t("verificationNotSubmitted");
+    return t(`verification${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
   }
 
   return (
@@ -162,6 +197,9 @@ export default function AdminPage() {
                       {getPayoutMethodLabel(loan.payout_method, t)}
                     </p>
                     <p className="muted">{formatPayoutDetails(loan.payout_details, t)}</p>
+                    <p className="muted">
+                      {t("verificationStatus")}: {verificationLabel(loan.verification_status)}
+                    </p>
                   </div>
                   <div>{formatMoney(loan.amount)}</div>
                   <div>
@@ -185,6 +223,12 @@ export default function AdminPage() {
                 </div>
 
                 <div className="actions" style={{ marginTop: 14 }}>
+                  <button className="secondary" onClick={() => updateVerificationStatus(loan.user_id, "verified")}>
+                    {t("verifyIdentityAction")}
+                  </button>
+                  <button className="secondary" onClick={() => updateVerificationStatus(loan.user_id, "rejected")}>
+                    {t("rejectIdentityAction")}
+                  </button>
                   <button onClick={() => updateStatus(loan.id, "approved")}>{t("approve")}</button>
                   <button className="danger" onClick={() => updateStatus(loan.id, "rejected")}>
                     {t("reject")}
