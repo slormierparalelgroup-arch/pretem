@@ -301,12 +301,11 @@ export default function AdminPage() {
                 <div className="thumbs">
                   {verificationImages(loan).map((image) => (
                     <div className="thumb-card" key={image.label}>
-                      <Image alt={image.label} height={180} src={image.url} width={240} />
+                      <button className="image-open-button" onClick={() => openImage(image.url)} type="button">
+                        <Image alt={image.label} height={180} src={image.url} width={240} />
+                      </button>
                       <strong>{image.label}</strong>
                       <div className="actions">
-                        <button className="secondary compact" onClick={() => openImage(image.url)}>
-                          {t("open")}
-                        </button>
                         <button className="secondary compact" onClick={() => downloadImage(image.url, `${loan.reference}-${image.label}.jpg`)}>
                           {t("download")}
                         </button>

@@ -394,6 +394,21 @@ button.compact {
   width: 100%;
 }
 
+.image-open-button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: zoom-in;
+  display: block;
+  min-height: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.image-open-button:hover img {
+  border-color: var(--accent-2);
+}
+
 .thumb-card {
   display: grid;
   gap: 8px;
