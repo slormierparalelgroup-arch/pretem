@@ -349,6 +349,24 @@ select:focus {
   color: var(--danger);
 }
 
+.status.canceled {
+  background: #e8edf3;
+  color: var(--muted);
+}
+
+.stack-actions {
+  align-items: flex-start;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+button.compact {
+  font-size: 13px;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
 .loan-list {
   display: grid;
   gap: 12px;
@@ -439,6 +457,10 @@ select:focus {
   .grid.four,
   .loan-row {
     grid-template-columns: 1fr;
+  }
+
+  .stack-actions {
+    justify-items: start;
   }
 
   .hero-visual {

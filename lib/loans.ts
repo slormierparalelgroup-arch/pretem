@@ -1,4 +1,4 @@
-export type LoanStatus = "pending" | "approved" | "rejected" | "paid";
+export type LoanStatus = "pending" | "approved" | "rejected" | "paid" | "canceled";
 export type RepaymentDays = 7 | 14 | 21 | 28;
 export type PayoutDetails = {
   mobile_number?: string;

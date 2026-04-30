@@ -8,7 +8,7 @@ import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
-const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "rejected", "paid"];
+const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "rejected", "paid", "canceled"];
 
 type AdminLoan = Loan & {
   verification_status?: "not_submitted" | "pending" | "verified" | "rejected";
@@ -229,13 +229,17 @@ export default function AdminPage() {
                   <button className="secondary" onClick={() => updateVerificationStatus(loan.user_id, "rejected")}>
                     {t("rejectIdentityAction")}
                   </button>
-                  <button onClick={() => updateStatus(loan.id, "approved")}>{t("approve")}</button>
-                  <button className="danger" onClick={() => updateStatus(loan.id, "rejected")}>
-                    {t("reject")}
-                  </button>
-                  <button className="secondary" onClick={() => updateStatus(loan.id, "paid")}>
-                    {t("markPaid")}
-                  </button>
+                  {loan.status !== "canceled" ? (
+                    <>
+                      <button onClick={() => updateStatus(loan.id, "approved")}>{t("approve")}</button>
+                      <button className="danger" onClick={() => updateStatus(loan.id, "rejected")}>
+                        {t("reject")}
+                      </button>
+                      <button className="secondary" onClick={() => updateStatus(loan.id, "paid")}>
+                        {t("markPaid")}
+                      </button>
+                    </>
+                  ) : null}
                 </div>
               </article>
             ))}

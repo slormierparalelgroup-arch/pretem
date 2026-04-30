@@ -8,13 +8,14 @@ import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
 import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
-const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "rejected", "paid"];
+const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "rejected", "paid", "canceled"];
 
 export default function DashboardPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [status, setStatus] = useState<"all" | LoanStatus>("all");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
   const filteredLoans = useMemo(() => {
@@ -23,25 +24,37 @@ export default function DashboardPage() {
   }, [loans, status]);
 
   useEffect(() => {
-    async function loadLoans() {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        router.push("/login");
-        return;
-      }
+    loadLoans();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
 
-      const { data } = await supabase
-        .from("loans")
-        .select("*")
-        .eq("user_id", userData.user.id)
-        .order("created_at", { ascending: false });
-
-      setLoans(data || []);
-      setLoading(false);
+  async function loadLoans() {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      router.push("/login");
+      return;
     }
 
-    loadLoans();
-  }, [router]);
+    const { data } = await supabase
+      .from("loans")
+      .select("*")
+      .eq("user_id", userData.user.id)
+      .order("created_at", { ascending: false });
+
+    setLoans(data || []);
+    setLoading(false);
+  }
+
+  async function cancelLoan(id: string) {
+    setMessage("");
+    const { error } = await supabase.rpc("cancel_pending_loan", { loan_id: id });
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setMessage(t("cancelRequestSuccess"));
+    await loadLoans();
+  }
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -87,6 +100,7 @@ export default function DashboardPage() {
       </div>
 
       {loading ? <p className="notice">{t("loadingLoanHistory")}</p> : null}
+      {message ? <p className="notice">{message}</p> : null}
 
       {!loading && filteredLoans.length === 0 ? (
         <div className="panel">
@@ -113,7 +127,14 @@ export default function DashboardPage() {
               </p>
               <p className="muted">{getPayoutMethodLabel(loan.payout_method, t)}</p>
             </div>
-            <span className={`status ${loan.status}`}>{statusLabel(loan.status)}</span>
+            <div className="stack-actions">
+              <span className={`status ${loan.status}`}>{statusLabel(loan.status)}</span>
+              {loan.status === "pending" ? (
+                <button className="secondary compact" onClick={() => cancelLoan(loan.id)}>
+                  {t("cancelRequest")}
+                </button>
+              ) : null}
+            </div>
           </article>
         ))}
       </div>

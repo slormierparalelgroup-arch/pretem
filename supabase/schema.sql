@@ -42,7 +42,7 @@ create table if not exists public.loans (
   repayment_days integer not null default 7 check (repayment_days in (7, 14, 21, 28)),
   interest_rate numeric not null default 0.10 check (interest_rate in (0.10, 0.19, 0.28, 0.36)),
   reference text not null unique,
-  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'paid')),
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'paid', 'canceled')),
   id_photo_url text,
   selfie_url text,
   selfie_with_id_url text,
@@ -68,6 +68,12 @@ add column if not exists payout_method text;
 
 alter table public.loans
 add column if not exists payout_details jsonb not null default '{}'::jsonb;
+
+alter table public.loans
+drop constraint if exists loans_status_check;
+
+alter table public.loans
+add constraint loans_status_check check (status in ('pending', 'approved', 'rejected', 'paid', 'canceled'));
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -133,6 +139,24 @@ $$;
 
 revoke all on function public.submit_identity_verification(text, text, text) from public;
 grant execute on function public.submit_identity_verification(text, text, text) to authenticated;
+
+create or replace function public.cancel_pending_loan(loan_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.loans
+  set status = 'canceled'
+  where id = loan_id
+    and user_id = auth.uid()
+    and status = 'pending';
+end;
+$$;
+
+revoke all on function public.cancel_pending_loan(uuid) from public;
+grant execute on function public.cancel_pending_loan(uuid) to authenticated;
 
 drop policy if exists "Users can read their profile" on public.profiles;
 create policy "Users can read their profile"
