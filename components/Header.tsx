@@ -70,6 +70,12 @@ export function Header() {
               <Link href="/verify-identity" onClick={() => setIsOpen(false)}>
                 {t("verifyIdentity")}
               </Link>
+              <Link href="/security" onClick={() => setIsOpen(false)}>
+                {t("security")}
+              </Link>
+              <Link href="/contact" onClick={() => setIsOpen(false)}>
+                {t("contact")}
+              </Link>
               {showAdmin ? (
                 <Link href="/admin" onClick={() => setIsOpen(false)}>
                   {t("admin")}
