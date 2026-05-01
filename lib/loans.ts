@@ -38,6 +38,11 @@ export type Loan = {
   id_photo_url: string | null;
   selfie_url: string | null;
   selfie_with_id_url: string | null;
+  terms_accepted: boolean | null;
+  terms_accepted_at: string | null;
+  agreement_version: string | null;
+  credit_reporting_acknowledged: boolean | null;
+  public_story_consent: boolean | null;
   due_date: string | null;
   paid_at: string | null;
   created_at: string;

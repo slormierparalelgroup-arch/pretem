@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { downloadLoanAgreement } from "@/lib/agreement";
 import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -315,6 +316,11 @@ export default function AdminPage() {
                 </div>
 
                 <div className="actions" style={{ marginTop: 14 }}>
+                  {loan.terms_accepted ? (
+                    <button className="secondary" onClick={() => downloadLoanAgreement(loan, t)}>
+                      {t("downloadAgreement")}
+                    </button>
+                  ) : null}
                   {verificationImages(loan).length ? (
                     <button className="secondary" onClick={() => printVerificationPacket(loan)}>
                       {t("printVerification")}

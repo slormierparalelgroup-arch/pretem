@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { downloadLoanAgreement } from "@/lib/agreement";
 import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
 import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -132,6 +133,11 @@ export default function DashboardPage() {
               {loan.status === "pending" ? (
                 <button className="secondary compact" onClick={() => cancelLoan(loan.id)}>
                   {t("cancelRequest")}
+                </button>
+              ) : null}
+              {loan.terms_accepted ? (
+                <button className="secondary compact" onClick={() => downloadLoanAgreement(loan, t)}>
+                  {t("downloadAgreement")}
                 </button>
               ) : null}
             </div>

@@ -24,6 +24,12 @@ export default function PrivacyPage() {
           signed links to review documents, open images, or download records when needed for business operations.
         </p>
 
+        <h2>Social Media</h2>
+        <p>
+          PRETEM will not publish borrower ID documents, selfies with ID, or private verification documents on social media. Any public testimonial
+          or marketing use should be limited to non-sensitive materials and separate permission.
+        </p>
+
         <h2>Sharing</h2>
         <p>
           PRETEM does not sell borrower information. We may share information only when needed for operations, fraud prevention, legal compliance,

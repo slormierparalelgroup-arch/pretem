@@ -504,6 +504,35 @@ button.compact {
   padding: 14px;
 }
 
+.agreement-box {
+  background: #fffaf4;
+  border: 1px solid rgba(245, 158, 66, 0.35);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.checkbox-row {
+  align-items: flex-start;
+  color: var(--text);
+  display: grid;
+  font-size: 14px;
+  gap: 10px;
+  grid-template-columns: 18px 1fr;
+  line-height: 1.45;
+}
+
+.checkbox-row.optional {
+  color: var(--muted);
+}
+
+.checkbox-row input {
+  margin-top: 2px;
+  min-height: auto;
+  width: 18px;
+}
+
 .capture-field {
   display: grid;
   gap: 12px;

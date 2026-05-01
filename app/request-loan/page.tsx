@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { getAgreementVersion } from "@/lib/agreement";
 import { calculateInterest, calculateRepayment, generateReference, getRepaymentOption, repaymentOptions, RepaymentDays } from "@/lib/loans";
 import { DestinationCountry, getCountryOption, PayoutMethod, validateHaitiPayoutPhone } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -35,6 +36,9 @@ export default function RequestLoanPage() {
   const [accountName, setAccountName] = useState("");
   const [clabe, setClabe] = useState("");
   const [repaymentDays, setRepaymentDays] = useState<RepaymentDays>(7);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [creditReportingAcknowledged, setCreditReportingAcknowledged] = useState(false);
+  const [publicStoryConsent, setPublicStoryConsent] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -131,6 +135,7 @@ export default function RequestLoanPage() {
       const phoneError = destinationCountry === "haiti" ? validateHaitiPayoutPhone(payoutMethod, mobileNumber, t) : "";
       if (phoneError) throw new Error(phoneError);
       if (verificationStatus === "not_submitted" || verificationStatus === "rejected") throw new Error(t("verifyBeforeLoan"));
+      if (!termsAccepted || !creditReportingAcknowledged) throw new Error(t("agreementRequired"));
 
       const { error } = await supabase.from("loans").insert({
         user_id: userId,
@@ -146,6 +151,11 @@ export default function RequestLoanPage() {
         interest_rate: selectedRepayment.rate,
         reference,
         status: "pending",
+        terms_accepted: true,
+        terms_accepted_at: new Date().toISOString(),
+        agreement_version: getAgreementVersion(),
+        credit_reporting_acknowledged: true,
+        public_story_consent: publicStoryConsent,
         due_date: dueDate.toISOString()
       });
 
@@ -274,11 +284,33 @@ export default function RequestLoanPage() {
         ) : null}
 
         {step === 2 ? (
-          <div className="notice">
-            <strong>{fullName}</strong> · ${numericAmount.toFixed(2)} · {repaymentDays} {t("dayUnit")} ·{" "}
-            {selectedRepayment.percentLabel} {t("interest").toLowerCase()} · {t(selectedCountry.labelKey)} ({selectedCountry.currency}) ·{" "}
-            {t("totalPayback")}: ${repayment.toFixed(2)}.
-          </div>
+          <>
+            <div className="notice">
+              <strong>{fullName}</strong> · ${numericAmount.toFixed(2)} · {repaymentDays} {t("dayUnit")} ·{" "}
+              {selectedRepayment.percentLabel} {t("interest").toLowerCase()} · {t(selectedCountry.labelKey)} ({selectedCountry.currency}) ·{" "}
+              {t("totalPayback")}: ${repayment.toFixed(2)}.
+            </div>
+
+            <div className="agreement-box">
+              <label className="checkbox-row">
+                <input checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} type="checkbox" />
+                <span>{t("acceptLoanTerms")}</span>
+              </label>
+              <label className="checkbox-row">
+                <input
+                  checked={creditReportingAcknowledged}
+                  onChange={(event) => setCreditReportingAcknowledged(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>{t("acceptCreditReporting")}</span>
+              </label>
+              <label className="checkbox-row optional">
+                <input checked={publicStoryConsent} onChange={(event) => setPublicStoryConsent(event.target.checked)} type="checkbox" />
+                <span>{t("publicStoryConsent")}</span>
+              </label>
+              <p className="muted">{t("publicStoryConsentHelp")}</p>
+            </div>
+          </>
         ) : null}
 
         {message ? <p className="notice">{message}</p> : null}
@@ -294,7 +326,7 @@ export default function RequestLoanPage() {
               {t("continue")}
             </button>
           ) : (
-            <button disabled={loading}>{loading ? t("submitting") : t("submitRequest")}</button>
+            <button disabled={loading || !termsAccepted || !creditReportingAcknowledged}>{loading ? t("submitting") : t("submitRequest")}</button>
           )}
           <Link className="button secondary" href="/dashboard">
             {t("myLoans")}

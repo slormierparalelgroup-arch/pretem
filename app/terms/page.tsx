@@ -30,6 +30,19 @@ export default function TermsPage() {
           requests when information is incomplete, inaccurate, suspicious, or cannot be verified.
         </p>
 
+        <h2>Collections And Credit Reporting</h2>
+        <p>
+          If a borrower does not respect approved repayment terms, PRETEM may send the account to collections or report account information to
+          credit or consumer reporting agencies only as permitted by applicable law. Information reported must be accurate, supported by records, and
+          handled with proper dispute procedures.
+        </p>
+
+        <h2>Publicity And Documents</h2>
+        <p>
+          PRETEM will not publish ID documents, selfies with ID, or private verification documents on social media. Any optional marketing or public
+          story permission is separate and should not include sensitive identity documents.
+        </p>
+
         <h2>No Financial Advice</h2>
         <p>
           Information on the website is for loan request processing only. It is not legal, tax, or financial advice. Borrowers should request only
