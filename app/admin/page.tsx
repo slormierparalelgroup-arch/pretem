@@ -41,6 +41,12 @@ type AvailableVerificationImage = VerificationImage & {
   path: string;
 };
 
+const adminLoanColumns =
+  "id, user_id, full_name, phone, amount, repayment, destination_country, currency, payout_method, payout_details, repayment_days, interest_rate, reference, status, id_photo_url, selfie_url, selfie_with_id_url, terms_accepted, terms_accepted_at, agreement_version, credit_reporting_acknowledged, public_story_consent, due_date, paid_at, created_at";
+
+const legacyAdminLoanColumns =
+  "id, user_id, full_name, phone, amount, repayment, destination_country, currency, payout_method, payout_details, repayment_days, interest_rate, reference, status, id_photo_url, selfie_url, selfie_with_id_url, due_date, paid_at, created_at";
+
 export default function AdminPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -128,12 +134,18 @@ export default function AdminPage() {
   }, [router]);
 
   async function refreshAdminData() {
-    const { data: loanRows, error: loansError } = await supabase
-      .from("loans")
-      .select(
-        "id, user_id, full_name, phone, amount, repayment, destination_country, currency, payout_method, payout_details, repayment_days, interest_rate, reference, status, id_photo_url, selfie_url, selfie_with_id_url, terms_accepted, terms_accepted_at, agreement_version, credit_reporting_acknowledged, public_story_consent, due_date, paid_at, created_at"
-      )
-      .order("created_at", { ascending: false });
+    let loanRows: unknown[] | null = null;
+    let loansError: { message: string } | null = null;
+    const loanResult = await supabase.from("loans").select(adminLoanColumns).order("created_at", { ascending: false });
+    loanRows = loanResult.data;
+    loansError = loanResult.error;
+
+    if (loansError?.message?.includes("terms_accepted")) {
+      const retry = await supabase.from("loans").select(legacyAdminLoanColumns).order("created_at", { ascending: false });
+      loanRows = retry.data;
+      loansError = retry.error;
+    }
+
     if (loansError) {
       setMessage(loansError.message);
       return;
@@ -151,7 +163,10 @@ export default function AdminPage() {
 
     const nextProfiles = (profileRows || []) as ProfileVerification[];
     const profileByUserId = new Map(nextProfiles.map((profile) => [profile.id, profile]));
-    const loansWithVerification = (loanRows || []).map((loan) => addLoanVerificationStatus(loan as Loan, profileByUserId.get(loan.user_id)));
+    const loansWithVerification = (loanRows || []).map((loan) => {
+      const nextLoan = loan as Loan;
+      return addLoanVerificationStatus(nextLoan, profileByUserId.get(nextLoan.user_id));
+    });
 
     setProfiles(nextProfiles);
     setLoans(loansWithVerification);
