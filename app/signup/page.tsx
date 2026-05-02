@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { AuthShell } from "@/components/AuthShell";
 import { useLanguage } from "@/components/LanguageProvider";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -35,8 +36,8 @@ export default function SignupPage() {
   }
 
   return (
-    <section className="page">
-      <form className="panel form" onSubmit={submit}>
+    <AuthShell>
+      <form className="form auth-form" onSubmit={submit}>
         <h1>{t("createAccount")}</h1>
         <label>
           {t("email")}
@@ -63,6 +64,6 @@ export default function SignupPage() {
           <Link href="/login">{t("login")}</Link>
         </p>
       </form>
-    </section>
+    </AuthShell>
   );
 }
