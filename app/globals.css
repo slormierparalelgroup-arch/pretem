@@ -712,6 +712,31 @@ button.compact {
   padding: 14px;
 }
 
+.verification-notice {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.verification-notice strong {
+  color: var(--ink);
+}
+
+.verification-notice p {
+  margin: 4px 0 0;
+}
+
+.verification-notice.verified {
+  background: #ecfdf5;
+  border: 1px solid rgba(46, 125, 50, 0.22);
+}
+
+.verification-notice.rejected {
+  background: #fff1f2;
+  border: 1px solid rgba(176, 0, 32, 0.18);
+}
+
 .agreement-box {
   background: #fffaf4;
   border: 1px solid rgba(245, 158, 66, 0.35);

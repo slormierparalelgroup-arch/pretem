@@ -10,11 +10,18 @@ import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
 const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "rejected", "paid", "canceled"];
+type VerificationStatus = "not_submitted" | "pending" | "verified" | "rejected";
+
+type ProfileStatus = {
+  verification_status: VerificationStatus;
+  verified_at: string | null;
+};
 
 export default function DashboardPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [profile, setProfile] = useState<ProfileStatus | null>(null);
   const [status, setStatus] = useState<"all" | LoanStatus>("all");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -36,13 +43,13 @@ export default function DashboardPage() {
       return;
     }
 
-    const { data } = await supabase
-      .from("loans")
-      .select("*")
-      .eq("user_id", userData.user.id)
-      .order("created_at", { ascending: false });
+    const [{ data }, { data: profileData }] = await Promise.all([
+      supabase.from("loans").select("*").eq("user_id", userData.user.id).order("created_at", { ascending: false }),
+      supabase.from("profiles").select("verification_status, verified_at").eq("id", userData.user.id).maybeSingle()
+    ]);
 
     setLoans(data || []);
+    setProfile((profileData as ProfileStatus | null) || null);
     setLoading(false);
   }
 
@@ -68,6 +75,11 @@ export default function DashboardPage() {
 
   function filterLabel(nextStatus: "all" | LoanStatus) {
     return nextStatus === "all" ? t("allStatuses") : statusLabel(nextStatus);
+  }
+
+  function verificationLabel(nextStatus?: VerificationStatus) {
+    if (!nextStatus) return t("verificationNotSubmitted");
+    return t(`verification${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
   }
 
   return (
@@ -102,6 +114,31 @@ export default function DashboardPage() {
 
       {loading ? <p className="notice">{t("loadingLoanHistory")}</p> : null}
       {message ? <p className="notice">{message}</p> : null}
+
+      {profile ? (
+        <div className={`notice verification-notice ${profile.verification_status}`}>
+          <div>
+            <strong>
+              {t("verificationStatus")}: {verificationLabel(profile.verification_status)}
+            </strong>
+            <p>
+              {profile.verification_status === "verified" ? t("dashboardVerificationApproved") : null}
+              {profile.verification_status === "pending" ? t("dashboardVerificationPending") : null}
+              {profile.verification_status === "rejected" ? t("dashboardVerificationRejected") : null}
+              {profile.verification_status === "not_submitted" ? t("dashboardVerificationNotSubmitted") : null}
+            </p>
+          </div>
+          {profile.verification_status === "verified" ? (
+            <Link className="button compact" href="/request-loan">
+              {t("requestLoan")}
+            </Link>
+          ) : (
+            <Link className="button secondary compact" href="/verify-identity">
+              {t("verifyIdentity")}
+            </Link>
+          )}
+        </div>
+      ) : null}
 
       {!loading && filteredLoans.length === 0 ? (
         <div className="panel">
