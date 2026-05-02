@@ -286,6 +286,19 @@ main {
   gap: 12px;
 }
 
+.admin-action-groups {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+.admin-action-groups h3 {
+  font-size: 15px;
+  margin: 0 0 10px;
+}
+
 .button,
 button {
   align-items: center;

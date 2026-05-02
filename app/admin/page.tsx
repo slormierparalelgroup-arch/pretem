@@ -315,33 +315,47 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                <div className="actions" style={{ marginTop: 14 }}>
-                  {loan.terms_accepted ? (
-                    <button className="secondary" onClick={() => downloadLoanAgreement(loan, t)}>
-                      {t("downloadAgreement")}
-                    </button>
-                  ) : null}
-                  {verificationImages(loan).length ? (
-                    <button className="secondary" onClick={() => printVerificationPacket(loan)}>
-                      {t("printVerification")}
-                    </button>
-                  ) : null}
-                  <button className="secondary" onClick={() => updateVerificationStatus(loan.user_id, "verified")}>
-                    {t("verifyIdentityAction")}
-                  </button>
-                  <button className="secondary" onClick={() => updateVerificationStatus(loan.user_id, "rejected")}>
-                    {t("rejectIdentityAction")}
-                  </button>
+                <div className="admin-action-groups">
+                  <div>
+                    <h3>{t("documentReview")}</h3>
+                    <div className="actions">
+                      {verificationImages(loan).length ? (
+                        <button onClick={() => updateVerificationStatus(loan.user_id, "verified")}>{t("acceptDocuments")}</button>
+                      ) : null}
+                      {verificationImages(loan).length ? (
+                        <button className="danger" onClick={() => updateVerificationStatus(loan.user_id, "rejected")}>
+                          {t("rejectDocuments")}
+                        </button>
+                      ) : null}
+                      {loan.terms_accepted ? (
+                        <button className="secondary" onClick={() => downloadLoanAgreement(loan, t)}>
+                          {t("downloadAgreement")}
+                        </button>
+                      ) : null}
+                      {verificationImages(loan).length ? (
+                        <button className="secondary" onClick={() => printVerificationPacket(loan)}>
+                          {t("printVerification")}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
                   {loan.status !== "canceled" ? (
-                    <>
-                      <button onClick={() => updateStatus(loan.id, "approved")}>{t("approve")}</button>
-                      <button className="danger" onClick={() => updateStatus(loan.id, "rejected")}>
-                        {t("reject")}
-                      </button>
-                      <button className="secondary" onClick={() => updateStatus(loan.id, "paid")}>
-                        {t("markPaid")}
-                      </button>
-                    </>
+                    <div>
+                      <h3>{t("loanDecision")}</h3>
+                      <div className="actions">
+                        <button disabled={loan.verification_status !== "verified"} onClick={() => updateStatus(loan.id, "approved")}>
+                          {t("approveLoan")}
+                        </button>
+                        <button className="danger" onClick={() => updateStatus(loan.id, "rejected")}>
+                          {t("rejectLoan")}
+                        </button>
+                        <button className="secondary" onClick={() => updateStatus(loan.id, "paid")}>
+                          {t("markPaid")}
+                        </button>
+                      </div>
+                      {loan.verification_status !== "verified" ? <p className="muted">{t("approveLoanNeedsDocs")}</p> : null}
+                    </div>
                   ) : null}
                 </div>
               </article>
