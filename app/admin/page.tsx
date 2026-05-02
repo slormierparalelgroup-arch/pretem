@@ -12,18 +12,12 @@ type AdminSection = "verification" | "loanRequests" | "loanManagement" | "users"
 
 type VerificationStatus = "not_submitted" | "pending" | "verified" | "rejected";
 
-type SignedVerification = {
-  signed_id_photo_url?: string | null;
-  signed_selfie_url?: string | null;
-  signed_selfie_with_id_url?: string | null;
-};
-
 type AdminLoan = Loan &
-  SignedVerification & {
+  {
     verification_status?: VerificationStatus;
   };
 
-type ProfileVerification = SignedVerification & {
+type ProfileVerification = {
   id: string;
   email: string | null;
   full_name: string | null;
@@ -35,6 +29,16 @@ type ProfileVerification = SignedVerification & {
   selfie_url: string | null;
   selfie_with_id_url: string | null;
   created_at: string;
+};
+
+type VerificationImage = {
+  label: string;
+  path: string | null;
+  type: string;
+};
+
+type AvailableVerificationImage = VerificationImage & {
+  path: string;
 };
 
 export default function AdminPage() {
@@ -124,7 +128,12 @@ export default function AdminPage() {
   }, [router]);
 
   async function refreshAdminData() {
-    const { data: loanRows, error: loansError } = await supabase.from("loans").select("*").order("created_at", { ascending: false });
+    const { data: loanRows, error: loansError } = await supabase
+      .from("loans")
+      .select(
+        "id, user_id, full_name, phone, amount, repayment, destination_country, currency, payout_method, payout_details, repayment_days, interest_rate, reference, status, id_photo_url, selfie_url, selfie_with_id_url, terms_accepted, terms_accepted_at, agreement_version, credit_reporting_acknowledged, public_story_consent, due_date, paid_at, created_at"
+      )
+      .order("created_at", { ascending: false });
     if (loansError) {
       setMessage(loansError.message);
       return;
@@ -140,14 +149,12 @@ export default function AdminPage() {
       return;
     }
 
-    const signedProfiles = await Promise.all((profileRows || []).map((profile) => addSignedProfileUrls(profile as ProfileVerification)));
-    const profileByUserId = new Map(signedProfiles.map((profile) => [profile.id, profile]));
-    const loansWithSignedUrls = await Promise.all(
-      (loanRows || []).map((loan) => addSignedVerificationUrls(loan as Loan, profileByUserId.get(loan.user_id)))
-    );
+    const nextProfiles = (profileRows || []) as ProfileVerification[];
+    const profileByUserId = new Map(nextProfiles.map((profile) => [profile.id, profile]));
+    const loansWithVerification = (loanRows || []).map((loan) => addLoanVerificationStatus(loan as Loan, profileByUserId.get(loan.user_id)));
 
-    setProfiles(signedProfiles);
-    setLoans(loansWithSignedUrls);
+    setProfiles(nextProfiles);
+    setLoans(loansWithVerification);
   }
 
   async function signVerificationPath(path: string | null) {
@@ -159,34 +166,10 @@ export default function AdminPage() {
     return data.signedUrl;
   }
 
-  async function addSignedProfileUrls(profile: ProfileVerification): Promise<ProfileVerification> {
-    const [signedIdPhoto, signedSelfie, signedSelfieWithId] = await Promise.all([
-      signVerificationPath(profile.id_photo_url),
-      signVerificationPath(profile.selfie_url),
-      signVerificationPath(profile.selfie_with_id_url)
-    ]);
-
-    return {
-      ...profile,
-      signed_id_photo_url: signedIdPhoto,
-      signed_selfie_url: signedSelfie,
-      signed_selfie_with_id_url: signedSelfieWithId
-    };
-  }
-
-  async function addSignedVerificationUrls(loan: Loan, profile?: ProfileVerification): Promise<AdminLoan> {
-    const [signedIdPhoto, signedSelfie, signedSelfieWithId] = await Promise.all([
-      signVerificationPath(profile?.id_photo_url || loan.id_photo_url),
-      signVerificationPath(profile?.selfie_url || loan.selfie_url),
-      signVerificationPath(profile?.selfie_with_id_url || loan.selfie_with_id_url)
-    ]);
-
+  function addLoanVerificationStatus(loan: Loan, profile?: ProfileVerification): AdminLoan {
     return {
       ...loan,
-      verification_status: profile?.verification_status,
-      signed_id_photo_url: signedIdPhoto,
-      signed_selfie_url: signedSelfie,
-      signed_selfie_with_id_url: signedSelfieWithId
+      verification_status: profile?.verification_status
     };
   }
 
@@ -229,12 +212,12 @@ export default function AdminPage() {
     return t(`verification${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
   }
 
-  function verificationImages(record: SignedVerification) {
+  function verificationImages(record: Pick<ProfileVerification, "id_photo_url" | "selfie_url" | "selfie_with_id_url">): AvailableVerificationImage[] {
     return [
-      { label: t("idPhoto"), url: record.signed_id_photo_url },
-      { label: t("selfie"), url: record.signed_selfie_url },
-      { label: t("selfieWithId"), url: record.signed_selfie_with_id_url }
-    ].filter((image): image is { label: string; url: string } => Boolean(image.url));
+      { label: t("idPhoto"), path: record.id_photo_url, type: "id-photo" },
+      { label: t("selfie"), path: record.selfie_url, type: "selfie" },
+      { label: t("selfieWithId"), path: record.selfie_with_id_url, type: "selfie-with-id" }
+    ].filter((image): image is AvailableVerificationImage => Boolean(image.path));
   }
 
   function sectionCount(nextSection: AdminSection) {
@@ -244,11 +227,15 @@ export default function AdminPage() {
     return userRows.length;
   }
 
-  function openImage(url: string) {
+  async function openImage(path: string) {
+    const url = await signVerificationPath(path);
+    if (!url) return;
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
-  function downloadImage(url: string, filename: string) {
+  async function downloadImage(path: string, filename: string) {
+    const url = await signVerificationPath(path);
+    if (!url) return;
     const link = document.createElement("a");
     link.href = url;
     link.download = filename.replace(/[^a-z0-9.-]+/gi, "-").toLowerCase();
@@ -267,8 +254,14 @@ export default function AdminPage() {
       .replaceAll("'", "&#039;");
   }
 
-  function printVerificationPacket(profile: ProfileVerification) {
+  async function printVerificationPacket(profile: ProfileVerification) {
     const images = verificationImages(profile);
+    const signedImages = await Promise.all(
+      images.map(async (image) => ({
+        ...image,
+        url: await signVerificationPath(image.path)
+      }))
+    );
     const printWindow = window.open("", "_blank", "noopener,noreferrer");
     if (!printWindow) {
       setMessage(t("printWindowBlocked"));
@@ -276,7 +269,8 @@ export default function AdminPage() {
     }
 
     const displayName = profile.full_name || profile.email || t("notProvided");
-    const imageHtml = images
+    const imageHtml = signedImages
+      .filter((image): image is AvailableVerificationImage & { url: string } => Boolean(image.url))
       .map(
         (image) => `
           <section class="photo">
@@ -332,10 +326,10 @@ export default function AdminPage() {
       <div className="table-actions">
         {images.map((image) => (
           <span className="table-action-group" key={image.label}>
-            <button className="secondary compact" onClick={() => openImage(image.url)}>
+            <button className="secondary compact" onClick={() => openImage(image.path)}>
               {image.label}
             </button>
-            <button className="secondary compact" onClick={() => downloadImage(image.url, `${displayName}-${image.label}.jpg`)}>
+            <button className="secondary compact" onClick={() => downloadImage(image.path, `${displayName}-${image.label}.jpg`)}>
               {t("download")}
             </button>
           </span>
