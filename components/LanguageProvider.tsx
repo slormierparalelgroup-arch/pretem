@@ -10,6 +10,7 @@ const dictionaries: Record<Language, Dictionary> = {
   ht: {
     admin: "Admin",
     adminDashboard: "Tablo admin",
+    adminDashboardBody: "Chwazi yon seksyon pou revize dokiman, trete nouvo demann, oswa jere prè ki deja ap mache.",
     adminLogin: "Koneksyon admin",
     adminReviewBody: "Admin yo ka apwouve, refize, epi swiv istwa prè yo.",
     adminReviewTitle: "Revizyon admin",
@@ -74,6 +75,8 @@ const dictionaries: Record<Language, Dictionary> = {
     loanDecision: "Desizyon prè",
     loanHistoryBody: "Gade istwa demann ou yo ak estati ranbousman yo.",
     loanInfo: "Enfo prè",
+    loanManagement: "Jesyon prè",
+    loanRequests: "Demann prè",
     login: "Konekte",
     loginTagline: "Prè fasil ak rapid san istwa kredi",
     menu: "Meni",
@@ -134,6 +137,7 @@ const dictionaries: Record<Language, Dictionary> = {
     termsDisclosure: "Tèm ak enfòmasyon prè",
     supabaseMissing: "Supabase poko konfigire. Ajoute NEXT_PUBLIC_SUPABASE_URL ak NEXT_PUBLIC_SUPABASE_ANON_KEY nan .env.local, epi rekòmanse sèvè a.",
     noLoansFound: "Pa gen prè",
+    noAdminItems: "Pa gen anyen nan seksyon sa a pou kounye a.",
     noLoansFoundBody: "Lè ou mande yon prè, li ap parèt isit la.",
     noRequestFound: "Nou pa jwenn okenn demann ak nimewo referans sa a.",
     newRequest: "Nouvo demann",
@@ -156,14 +160,15 @@ const dictionaries: Record<Language, Dictionary> = {
     verificationSubmitted: "Verifikasyon an voye. Admin nan ap revize li.",
     verificationVerified: "Verifye",
     verificationVerifiedBody: "Idantite ou verifye. Ou ka kontinye mande prè.",
+    verification: "Verifikasyon",
     verifyBeforeLoan: "Tanpri verifye idantite ou anvan ou mande prè.",
     verifyIdentity: "Verifye idantite",
-    verifyIdentityAction: "Verifye idantite",
-    verification: "Verifikasyon"
+    verifyIdentityAction: "Verifye idantite"
   },
   en: {
     admin: "Admin",
     adminDashboard: "Admin dashboard",
+    adminDashboardBody: "Choose a section to review documents, process new requests, or manage active loans.",
     adminLogin: "Admin login",
     adminReviewBody: "Admins can approve, reject, and track loan history.",
     adminReviewTitle: "Admin review",
@@ -228,6 +233,8 @@ const dictionaries: Record<Language, Dictionary> = {
     loanDecision: "Loan decision",
     loanHistoryBody: "View your request history and repayment status.",
     loanInfo: "Loan info",
+    loanManagement: "Loan management",
+    loanRequests: "Loan requests",
     login: "Log in",
     loginTagline: "Easy and fast loan without history",
     menu: "Menu",
@@ -288,6 +295,7 @@ const dictionaries: Record<Language, Dictionary> = {
     termsDisclosure: "Terms and loan disclosure",
     supabaseMissing: "Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local, then restart the dev server.",
     noLoansFound: "No loans found",
+    noAdminItems: "There is nothing in this section right now.",
     noLoansFoundBody: "Once you request a loan, it will appear here.",
     noRequestFound: "No loan request was found for that reference.",
     newRequest: "New request",
@@ -310,14 +318,15 @@ const dictionaries: Record<Language, Dictionary> = {
     verificationSubmitted: "Verification submitted. The admin will review it.",
     verificationVerified: "Verified",
     verificationVerifiedBody: "Your identity is verified. You can continue to request a loan.",
+    verification: "Verification",
     verifyBeforeLoan: "Please verify your identity before requesting a loan.",
     verifyIdentity: "Verify identity",
-    verifyIdentityAction: "Verify identity",
-    verification: "Verification"
+    verifyIdentityAction: "Verify identity"
   },
   es: {
     admin: "Admin",
     adminDashboard: "Panel de admin",
+    adminDashboardBody: "Elige una sección para revisar documentos, procesar nuevas solicitudes o administrar préstamos activos.",
     adminLogin: "Inicio de admin",
     adminReviewBody: "Los administradores pueden aprobar, rechazar y revisar el historial de préstamos.",
     adminReviewTitle: "Revisión admin",
@@ -382,6 +391,8 @@ const dictionaries: Record<Language, Dictionary> = {
     loanDecision: "Decisión del préstamo",
     loanHistoryBody: "Consulta tu historial de solicitudes y estado de pago.",
     loanInfo: "Información del préstamo",
+    loanManagement: "Gestión de préstamos",
+    loanRequests: "Solicitudes de préstamo",
     login: "Iniciar sesión",
     loginTagline: "Préstamo fácil y rápido sin historial",
     menu: "Menú",
@@ -442,6 +453,7 @@ const dictionaries: Record<Language, Dictionary> = {
     termsDisclosure: "Términos e información del préstamo",
     supabaseMissing: "Supabase aún no está configurado. Agrega NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY a .env.local, luego reinicia el servidor.",
     noLoansFound: "No hay préstamos",
+    noAdminItems: "No hay nada en esta sección por ahora.",
     noLoansFoundBody: "Cuando solicites un préstamo, aparecerá aquí.",
     noRequestFound: "No se encontró una solicitud con esa referencia.",
     newRequest: "Nueva solicitud",
@@ -464,10 +476,10 @@ const dictionaries: Record<Language, Dictionary> = {
     verificationSubmitted: "Verificación enviada. El admin la revisará.",
     verificationVerified: "Verificada",
     verificationVerifiedBody: "Tu identidad está verificada. Puedes continuar y solicitar un préstamo.",
+    verification: "Verificación",
     verifyBeforeLoan: "Verifica tu identidad antes de solicitar un préstamo.",
     verifyIdentity: "Verificar identidad",
-    verifyIdentityAction: "Verificar identidad",
-    verification: "Verificación"
+    verifyIdentityAction: "Verificar identidad"
   }
 };
 

@@ -299,6 +299,40 @@ main {
   margin: 0 0 10px;
 }
 
+.admin-section-tabs {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.admin-section-tabs button {
+  justify-content: space-between;
+  min-width: 0;
+  text-align: left;
+}
+
+.admin-section-tabs button.active {
+  background: var(--accent);
+  border-color: var(--accent-2);
+  color: white;
+}
+
+.admin-section-tabs span {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 13px;
+  justify-content: center;
+  min-width: 28px;
+  padding: 3px 8px;
+}
+
+.admin-section-tabs button.secondary span {
+  background: var(--surface-2);
+}
+
 .button,
 button {
   align-items: center;
@@ -743,6 +777,7 @@ button.compact {
   }
 
   .stepper,
+  .admin-section-tabs,
   .thumbs {
     grid-template-columns: 1fr 1fr;
   }
