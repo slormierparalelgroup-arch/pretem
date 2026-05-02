@@ -210,19 +210,19 @@ main {
 
 .auth-background {
   background:
-    linear-gradient(135deg, rgba(4, 24, 48, 0.78), rgba(11, 61, 117, 0.62), rgba(245, 158, 66, 0.22)),
+    linear-gradient(135deg, rgba(4, 24, 48, 0.58), rgba(11, 61, 117, 0.44), rgba(245, 158, 66, 0.16)),
     url("/images/pretem-cover.png");
   background-position: center;
   background-size: cover;
-  filter: blur(12px);
-  inset: -18px;
+  filter: blur(5px);
+  inset: -8px;
   position: absolute;
-  transform: scale(1.04);
+  transform: scale(1.02);
   z-index: -2;
 }
 
 .auth-page::after {
-  background: rgba(244, 248, 251, 0.62);
+  background: rgba(244, 248, 251, 0.42);
   content: "";
   inset: 0;
   position: absolute;
@@ -261,14 +261,6 @@ main {
   max-width: min(100%, 382px);
   object-fit: contain;
   width: auto;
-}
-
-.auth-description {
-  color: var(--muted);
-  font-size: 16px;
-  line-height: 1.55;
-  margin: 0;
-  text-align: center;
 }
 
 .auth-form {

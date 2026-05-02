@@ -39,7 +39,6 @@ export default function LoginPage() {
   return (
     <AuthShell>
       <form className="form auth-form" onSubmit={submit}>
-        <h1>{t("login")}</h1>
         <p className="auth-tagline">{t("loginTagline")}</p>
         <label>
           {t("email")}

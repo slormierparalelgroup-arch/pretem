@@ -3,15 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ReactNode } from "react";
-import { LanguageSelect, useLanguage } from "@/components/LanguageProvider";
+import { LanguageSelect } from "@/components/LanguageProvider";
 
 type AuthShellProps = {
   children: ReactNode;
 };
 
 export function AuthShell({ children }: AuthShellProps) {
-  const { t } = useLanguage();
-
   return (
     <section className="auth-page">
       <div className="auth-background" aria-hidden="true" />
@@ -22,7 +20,6 @@ export function AuthShell({ children }: AuthShellProps) {
         <Link className="auth-logo" href="/">
           <Image alt="PRETEM Credit" height={72} priority src="/images/pretem-logo-transparent.png" width={382} />
         </Link>
-        <p className="auth-description">{t("authDescription")}</p>
         {children}
       </div>
     </section>
