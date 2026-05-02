@@ -3,6 +3,9 @@ create extension if not exists "pgcrypto";
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
+  full_name text,
+  country text,
+  phone text,
   role text not null default 'user' check (role in ('user', 'admin')),
   credit_score integer not null default 500,
   verification_status text not null default 'not_submitted' check (verification_status in ('not_submitted', 'pending', 'verified', 'rejected')),
@@ -15,6 +18,15 @@ create table if not exists public.profiles (
 
 alter table public.profiles
 add column if not exists verification_status text not null default 'not_submitted' check (verification_status in ('not_submitted', 'pending', 'verified', 'rejected'));
+
+alter table public.profiles
+add column if not exists full_name text;
+
+alter table public.profiles
+add column if not exists country text;
+
+alter table public.profiles
+add column if not exists phone text;
 
 alter table public.profiles
 add column if not exists id_photo_url text;
@@ -102,8 +114,14 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email)
-  values (new.id, new.email)
+  insert into public.profiles (id, email, full_name, country, phone)
+  values (
+    new.id,
+    new.email,
+    new.raw_user_meta_data ->> 'full_name',
+    new.raw_user_meta_data ->> 'country',
+    new.raw_user_meta_data ->> 'phone'
+  )
   on conflict (id) do nothing;
   return new;
 end;
@@ -130,6 +148,31 @@ as $$
       and role = 'admin'
   );
 $$;
+
+create or replace function public.save_profile_info(
+  profile_full_name text,
+  profile_country text,
+  profile_phone text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, full_name, country, phone)
+  values (auth.uid(), auth.jwt() ->> 'email', profile_full_name, profile_country, profile_phone)
+  on conflict (id) do update
+  set
+    email = excluded.email,
+    full_name = excluded.full_name,
+    country = excluded.country,
+    phone = excluded.phone;
+end;
+$$;
+
+revoke all on function public.save_profile_info(text, text, text) from public;
+grant execute on function public.save_profile_info(text, text, text) to authenticated;
 
 create or replace function public.submit_identity_verification(
   id_photo_path text,
