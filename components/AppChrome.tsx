@@ -6,13 +6,16 @@ import { SiteFooter } from "@/components/SiteFooter";
 
 export function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === "/" || pathname === "/login" || pathname === "/signup";
+  const isEntryPage = pathname === "/";
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
+  const hideHeader = isEntryPage || isAuthPage;
+  const hideFooter = isAuthPage;
 
   return (
     <>
-      {isAuthPage ? null : <Header />}
+      {hideHeader ? null : <Header />}
       <main>{children}</main>
-      {isAuthPage ? null : <SiteFooter />}
+      {hideFooter ? null : <SiteFooter />}
     </>
   );
 }
