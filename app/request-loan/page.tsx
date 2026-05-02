@@ -38,7 +38,7 @@ export default function RequestLoanPage() {
   const [repaymentDays, setRepaymentDays] = useState<RepaymentDays>(7);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [creditReportingAcknowledged, setCreditReportingAcknowledged] = useState(false);
-  const [publicStoryConsent, setPublicStoryConsent] = useState(false);
+  const [lawfulRecoveryAcknowledged, setLawfulRecoveryAcknowledged] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -135,7 +135,7 @@ export default function RequestLoanPage() {
       const phoneError = destinationCountry === "haiti" ? validateHaitiPayoutPhone(payoutMethod, mobileNumber, t) : "";
       if (phoneError) throw new Error(phoneError);
       if (verificationStatus === "not_submitted" || verificationStatus === "rejected") throw new Error(t("verifyBeforeLoan"));
-      if (!termsAccepted || !creditReportingAcknowledged) throw new Error(t("agreementRequired"));
+      if (!termsAccepted || !creditReportingAcknowledged || !lawfulRecoveryAcknowledged) throw new Error(t("agreementRequired"));
 
       const { error } = await supabase.from("loans").insert({
         user_id: userId,
@@ -155,7 +155,7 @@ export default function RequestLoanPage() {
         terms_accepted_at: new Date().toISOString(),
         agreement_version: getAgreementVersion(),
         credit_reporting_acknowledged: true,
-        public_story_consent: publicStoryConsent,
+        public_story_consent: false,
         due_date: dueDate.toISOString()
       });
 
@@ -304,9 +304,13 @@ export default function RequestLoanPage() {
                 />
                 <span>{t("acceptCreditReporting")}</span>
               </label>
-              <label className="checkbox-row optional">
-                <input checked={publicStoryConsent} onChange={(event) => setPublicStoryConsent(event.target.checked)} type="checkbox" />
-                <span>{t("publicStoryConsent")}</span>
+              <label className="checkbox-row">
+                <input
+                  checked={lawfulRecoveryAcknowledged}
+                  onChange={(event) => setLawfulRecoveryAcknowledged(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>{t("acceptLawfulRecovery")}</span>
               </label>
               <p className="muted">{t("publicStoryConsentHelp")}</p>
             </div>
@@ -326,7 +330,9 @@ export default function RequestLoanPage() {
               {t("continue")}
             </button>
           ) : (
-            <button disabled={loading || !termsAccepted || !creditReportingAcknowledged}>{loading ? t("submitting") : t("submitRequest")}</button>
+            <button disabled={loading || !termsAccepted || !creditReportingAcknowledged || !lawfulRecoveryAcknowledged}>
+              {loading ? t("submitting") : t("submitRequest")}
+            </button>
           )}
           <Link className="button secondary" href="/dashboard">
             {t("myLoans")}

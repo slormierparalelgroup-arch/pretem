@@ -42,7 +42,8 @@ export function buildLoanAgreementText(loan: Loan, t: Translator) {
     "- I agree to repay according to the terms shown in this request if the loan is approved and funded.",
     "- I understand that late, unpaid, or defaulted obligations may be sent to collections or reported to credit/consumer reporting agencies only as permitted by applicable law.",
     "- I understand that credit reporting requires accurate records and that I may dispute inaccurate information.",
-    "- I understand that PRETEM Credit will not publish my ID document, selfie with ID, or private verification documents on social media.",
+    "- I understand that PRETEM Credit may use lawful recovery methods, including private reminders, collections, legal action, or credit reporting as permitted by applicable law.",
+    "- I understand that PRETEM Credit will not publish my name, photos, ID document, selfie with ID, debt information, or private verification documents on social media.",
     loan.public_story_consent
       ? "- I separately allow PRETEM Credit to contact me about using non-sensitive testimonials or approved marketing photos. This does not include ID documents."
       : "- I did not give optional public story or marketing consent.",
