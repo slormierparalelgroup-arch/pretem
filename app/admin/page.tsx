@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -323,113 +322,160 @@ export default function AdminPage() {
     printWindow.document.close();
   }
 
-  function VerificationCard({ profile }: { profile: ProfileVerification }) {
+  function DocumentButtons({ profile }: { profile: ProfileVerification }) {
     const displayName = profile.full_name || profile.email || t("notProvided");
     const images = verificationImages(profile);
 
+    if (!images.length) return <span className="muted">{t("notProvided")}</span>;
+
     return (
-      <article className="card">
-        <div className="loan-row admin-profile-row">
-          <div>
-            <strong>{displayName}</strong>
-            <p className="muted">
-              {profile.phone || t("notProvided")} · {profile.country || t("notProvided")}
-            </p>
-            <p className="muted">{profile.email || t("notProvided")}</p>
-          </div>
-          <span className={`status ${profile.verification_status}`}>{verificationLabel(profile.verification_status)}</span>
-        </div>
-
-        <div className="thumbs">
-          {images.map((image) => (
-            <div className="thumb-card" key={image.label}>
-              <button className="image-open-button" onClick={() => openImage(image.url)} type="button">
-                <Image alt={image.label} height={180} src={image.url} width={240} />
-              </button>
-              <strong>{image.label}</strong>
-              <div className="actions">
-                <button className="secondary compact" onClick={() => downloadImage(image.url, `${displayName}-${image.label}.jpg`)}>
-                  {t("download")}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="admin-action-groups">
-          <div>
-            <h3>{t("documentReview")}</h3>
-            <div className="actions">
-              {images.length ? <button onClick={() => updateVerificationStatus(profile.id, "verified")}>{t("acceptDocuments")}</button> : null}
-              {images.length ? (
-                <button className="danger" onClick={() => updateVerificationStatus(profile.id, "rejected")}>
-                  {t("rejectDocuments")}
-                </button>
-              ) : null}
-              {images.length ? (
-                <button className="secondary" onClick={() => printVerificationPacket(profile)}>
-                  {t("printVerification")}
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </article>
+      <div className="table-actions">
+        {images.map((image) => (
+          <span className="table-action-group" key={image.label}>
+            <button className="secondary compact" onClick={() => openImage(image.url)}>
+              {image.label}
+            </button>
+            <button className="secondary compact" onClick={() => downloadImage(image.url, `${displayName}-${image.label}.jpg`)}>
+              {t("download")}
+            </button>
+          </span>
+        ))}
+      </div>
     );
   }
 
-  function LoanCard({ loan, mode }: { loan: AdminLoan; mode: "request" | "management" }) {
+  function VerificationTable() {
     return (
-      <article className="card">
-        <div className="loan-row">
-          <div>
-            <strong>{loan.full_name}</strong>
-            <p className="muted">
-              {loan.phone} · {loan.reference}
-            </p>
-            <p className="muted">
-              {getDestinationLabel(loan.destination_country, t)} {loan.currency ? `(${loan.currency})` : ""} ·{" "}
-              {getPayoutMethodLabel(loan.payout_method, t)}
-            </p>
-            <p className="muted">{formatPayoutDetails(loan.payout_details, t)}</p>
-            <p className="muted">
-              {t("verificationStatus")}: {verificationLabel(loan.verification_status)}
-            </p>
-          </div>
-          <div>{formatMoney(loan.amount)}</div>
-          <div>
-            <strong>{formatMoney(loan.repayment)}</strong>
-            <p className="muted">
-              {loan.repayment_days ?? "?"} {t("dayUnit")} ·{" "}
-              {loan.interest_rate != null ? `${Math.round(loan.interest_rate * 100)}%` : t("rate")}
-            </p>
-          </div>
-          <span className={`status ${loan.status}`}>{statusLabel(loan.status)}</span>
-        </div>
+      <div className="card admin-users-card">
+        <div className="admin-table-wrap">
+          <table className="admin-table admin-work-table">
+            <thead>
+              <tr>
+                <th>{t("fullName")}</th>
+                <th>{t("email")}</th>
+                <th>{t("phoneNumber")}</th>
+                <th>{t("signupCountry")}</th>
+                <th>{t("verification")}</th>
+                <th>{t("documents")}</th>
+                <th>{t("actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {verificationRequests.map((profile) => {
+                const displayName = profile.full_name || profile.email || t("notProvided");
+                const images = verificationImages(profile);
 
-        <div className="admin-action-groups">
-          <div>
-            <h3>{mode === "request" ? t("loanDecision") : t("loanManagement")}</h3>
-            <div className="actions">
-              {mode === "request" ? (
-                <button disabled={loan.verification_status !== "verified"} onClick={() => updateStatus(loan.id, "approved")}>
-                  {t("approveLoan")}
-                </button>
-              ) : null}
-              {mode === "management" && loan.status === "approved" ? <button onClick={() => updateStatus(loan.id, "paid")}>{t("markPaid")}</button> : null}
-              <button className="danger" onClick={() => updateStatus(loan.id, "rejected")}>
-                {t("rejectLoan")}
-              </button>
-              {loan.terms_accepted ? (
-                <button className="secondary" onClick={() => downloadLoanAgreement(loan, t)}>
-                  {t("downloadAgreement")}
-                </button>
-              ) : null}
-            </div>
-            {mode === "request" && loan.verification_status !== "verified" ? <p className="muted">{t("approveLoanNeedsDocs")}</p> : null}
-          </div>
+                return (
+                  <tr key={profile.id}>
+                    <td>{displayName}</td>
+                    <td>{profile.email || t("notProvided")}</td>
+                    <td>{profile.phone || t("notProvided")}</td>
+                    <td>{profile.country || t("notProvided")}</td>
+                    <td>
+                      <span className={`status ${profile.verification_status}`}>{verificationLabel(profile.verification_status)}</span>
+                    </td>
+                    <td>
+                      <DocumentButtons profile={profile} />
+                    </td>
+                    <td>
+                      <div className="table-actions">
+                        {images.length ? <button className="compact" onClick={() => updateVerificationStatus(profile.id, "verified")}>{t("acceptDocuments")}</button> : null}
+                        {images.length ? (
+                          <button className="danger compact" onClick={() => updateVerificationStatus(profile.id, "rejected")}>
+                            {t("rejectDocuments")}
+                          </button>
+                        ) : null}
+                        {images.length ? (
+                          <button className="secondary compact" onClick={() => printVerificationPacket(profile)}>
+                            {t("printVerification")}
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      </article>
+      </div>
+    );
+  }
+
+  function LoansTable({ rows, mode }: { rows: AdminLoan[]; mode: "request" | "management" }) {
+    return (
+      <div className="card admin-users-card">
+        <div className="admin-table-wrap">
+          <table className="admin-table admin-work-table">
+            <thead>
+              <tr>
+                <th>{t("fullName")}</th>
+                <th>{t("referenceNumber")}</th>
+                <th>{t("phoneNumber")}</th>
+                <th>{t("loanAmount")}</th>
+                <th>{t("repayment")}</th>
+                <th>{t("destinationFallback")}</th>
+                <th>{t("payoutMethod")}</th>
+                <th>{t("payoutInfo")}</th>
+                <th>{t("verification")}</th>
+                <th>{t("status")}</th>
+                <th>{t("actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((loan) => (
+                <tr key={loan.id}>
+                  <td>{loan.full_name}</td>
+                  <td>{loan.reference}</td>
+                  <td>{loan.phone}</td>
+                  <td>{formatMoney(loan.amount)}</td>
+                  <td>
+                    {formatMoney(loan.repayment)}
+                    <span className="muted table-subtext">
+                      {loan.repayment_days ?? "?"} {t("dayUnit")} ·{" "}
+                      {loan.interest_rate != null ? `${Math.round(loan.interest_rate * 100)}%` : t("rate")}
+                    </span>
+                  </td>
+                  <td>
+                    {getDestinationLabel(loan.destination_country, t)} {loan.currency ? `(${loan.currency})` : ""}
+                  </td>
+                  <td>{getPayoutMethodLabel(loan.payout_method, t)}</td>
+                  <td>{formatPayoutDetails(loan.payout_details, t)}</td>
+                  <td>
+                    <span className={`status ${loan.verification_status || "pending"}`}>{verificationLabel(loan.verification_status)}</span>
+                  </td>
+                  <td>
+                    <span className={`status ${loan.status}`}>{statusLabel(loan.status)}</span>
+                  </td>
+                  <td>
+                    <div className="table-actions">
+                      {mode === "request" ? (
+                        <button className="compact" disabled={loan.verification_status !== "verified"} onClick={() => updateStatus(loan.id, "approved")}>
+                          {t("approveLoan")}
+                        </button>
+                      ) : null}
+                      {mode === "management" && loan.status === "approved" ? (
+                        <button className="compact" onClick={() => updateStatus(loan.id, "paid")}>
+                          {t("markPaid")}
+                        </button>
+                      ) : null}
+                      <button className="danger compact" onClick={() => updateStatus(loan.id, "rejected")}>
+                        {t("rejectLoan")}
+                      </button>
+                      {loan.terms_accepted ? (
+                        <button className="secondary compact" onClick={() => downloadLoanAgreement(loan, t)}>
+                          {t("downloadAgreement")}
+                        </button>
+                      ) : null}
+                      {mode === "request" && loan.verification_status !== "verified" ? <span className="muted table-subtext">{t("approveLoanNeedsDocs")}</span> : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     );
   }
 
@@ -519,9 +565,9 @@ export default function AdminPage() {
           </div>
 
           <div className="loan-list">
-            {section === "verification" ? verificationRequests.map((profile) => <VerificationCard key={profile.id} profile={profile} />) : null}
-            {section === "loanRequests" ? pendingLoans.map((loan) => <LoanCard key={loan.id} loan={loan} mode="request" />) : null}
-            {section === "loanManagement" ? managedLoans.map((loan) => <LoanCard key={loan.id} loan={loan} mode="management" />) : null}
+            {section === "verification" && verificationRequests.length ? <VerificationTable /> : null}
+            {section === "loanRequests" && pendingLoans.length ? <LoansTable rows={pendingLoans} mode="request" /> : null}
+            {section === "loanManagement" && managedLoans.length ? <LoansTable rows={managedLoans} mode="management" /> : null}
             {section === "users" ? <UsersDatabase /> : null}
             {section !== "users" && sectionCount(section) === 0 ? <p className="notice">{t("noAdminItems")}</p> : null}
           </div>

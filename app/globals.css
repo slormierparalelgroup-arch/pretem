@@ -382,6 +382,31 @@ main {
   background: #fffaf4;
 }
 
+.admin-work-table {
+  min-width: 1320px;
+}
+
+.table-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.table-action-group {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.table-subtext {
+  display: block;
+  font-size: 12px;
+  margin-top: 3px;
+  max-width: 220px;
+  white-space: normal;
+}
+
 .button,
 button {
   align-items: center;
