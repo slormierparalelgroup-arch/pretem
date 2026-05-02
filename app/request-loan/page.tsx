@@ -122,7 +122,10 @@ export default function RequestLoanPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!userId) return;
+    if (!userId) {
+      setMessage(t("useLoginFirst"));
+      return;
+    }
 
     setLoading(true);
     setMessage("");
@@ -313,6 +316,9 @@ export default function RequestLoanPage() {
                 <span>{t("acceptLawfulRecovery")}</span>
               </label>
               <p className="muted">{t("publicStoryConsentHelp")}</p>
+              {!termsAccepted || !creditReportingAcknowledged || !lawfulRecoveryAcknowledged ? (
+                <p className="muted">{t("requiredAgreementHelp")}</p>
+              ) : null}
             </div>
           </>
         ) : null}
@@ -330,9 +336,7 @@ export default function RequestLoanPage() {
               {t("continue")}
             </button>
           ) : (
-            <button disabled={loading || !termsAccepted || !creditReportingAcknowledged || !lawfulRecoveryAcknowledged}>
-              {loading ? t("submitting") : t("submitRequest")}
-            </button>
+            <button disabled={loading}>{loading ? t("submitting") : t("submitRequest")}</button>
           )}
           <Link className="button secondary" href="/dashboard">
             {t("myLoans")}
