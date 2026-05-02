@@ -53,6 +53,7 @@ const dictionaries: Record<Language, Dictionary> = {
     haitiAccountName: "Non sou kont lan",
     haitiPhoneHelp: "MonCash dwe se Digicel. NatCash dwe se Natcom.",
     haitiPhoneLengthError: "Mete yon nimewo Ayiti 8 chif, ak +509 oswa san +509.",
+    hidePassword: "Kache modpas",
     openCamera: "Ouvri kamera",
     open: "Ouvri",
     heroBody:
@@ -108,6 +109,7 @@ const dictionaries: Record<Language, Dictionary> = {
     selfieWithId: "Selfie ak pyès idantite",
     security: "Sekirite",
     selectedFile: "Fichye chwazi",
+    showPassword: "Montre modpas",
     simpleRequestsBody: "Voye enfòmasyon kontak, kantite lajan, ak apèsi ranbousman an.",
     simpleRequestsTitle: "Demann senp",
     signOut: "Dekonekte",
@@ -195,6 +197,7 @@ const dictionaries: Record<Language, Dictionary> = {
     haitiAccountName: "Name on account",
     haitiPhoneHelp: "MonCash must be a Digicel number. NatCash must be a Natcom number.",
     haitiPhoneLengthError: "Use an 8-digit Haiti phone number, with or without +509.",
+    hidePassword: "Hide password",
     openCamera: "Open camera",
     open: "Open",
     heroBody:
@@ -250,6 +253,7 @@ const dictionaries: Record<Language, Dictionary> = {
     selfieWithId: "Selfie with ID",
     security: "Security",
     selectedFile: "Selected file",
+    showPassword: "Show password",
     simpleRequestsBody: "Submit basic contact details, amount, and repayment preview.",
     simpleRequestsTitle: "Simple requests",
     signOut: "Sign out",
@@ -337,6 +341,7 @@ const dictionaries: Record<Language, Dictionary> = {
     haitiAccountName: "Nombre de la cuenta",
     haitiPhoneHelp: "MonCash debe ser Digicel. NatCash debe ser Natcom.",
     haitiPhoneLengthError: "Usa un número de Haiti de 8 dígitos, con o sin +509.",
+    hidePassword: "Ocultar contraseña",
     openCamera: "Abrir cámara",
     open: "Abrir",
     heroBody:
@@ -392,6 +397,7 @@ const dictionaries: Record<Language, Dictionary> = {
     selfieWithId: "Selfie con identificación",
     security: "Seguridad",
     selectedFile: "Archivo seleccionado",
+    showPassword: "Mostrar contraseña",
     simpleRequestsBody: "Envía datos de contacto, monto y vista previa del pago.",
     simpleRequestsTitle: "Solicitudes simples",
     signOut: "Cerrar sesión",

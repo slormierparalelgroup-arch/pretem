@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AuthShell } from "@/components/AuthShell";
 import { useLanguage } from "@/components/LanguageProvider";
+import { PasswordField } from "@/components/PasswordField";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -43,10 +44,7 @@ export default function LoginPage() {
           {t("email")}
           <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
         </label>
-        <label>
-          {t("password")}
-          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
-        </label>
+        <PasswordField value={password} onChange={setPassword} />
         {!isSupabaseConfigured ? (
           <p className="notice">
             {t("supabaseMissing")}

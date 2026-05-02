@@ -242,6 +242,15 @@ main {
   width: 100%;
 }
 
+.auth-language {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.auth-language .language-select {
+  align-items: flex-end;
+}
+
 .auth-logo {
   display: inline-flex;
   justify-self: center;
@@ -442,6 +451,36 @@ select:focus {
   border-color: var(--accent-2);
   box-shadow: 0 0 0 3px rgba(245, 158, 66, 0.12);
   outline: none;
+}
+
+.password-control {
+  display: grid;
+  grid-template-columns: 1fr 44px;
+}
+
+.password-control input {
+  border-bottom-right-radius: 0;
+  border-right: 0;
+  border-top-right-radius: 0;
+}
+
+.password-control .icon-button {
+  background: white;
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  color: var(--accent);
+  min-height: 44px;
+  padding: 0;
+}
+
+.password-control:focus-within .icon-button {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 3px rgba(245, 158, 66, 0.12);
+}
+
+.icon-button svg {
+  pointer-events: none;
 }
 
 .stepper {
