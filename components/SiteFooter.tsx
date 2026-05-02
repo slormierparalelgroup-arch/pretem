@@ -15,7 +15,7 @@ export function SiteFooter() {
       <nav>
         <Link href="/privacy">{t("privacyPolicy")}</Link>
         <Link href="/terms">{t("termsDisclosure")}</Link>
-        <Link href="/security">{t("security")}</Link>
+        <Link href="/security">{t("securityConfidentialityPolicy")}</Link>
         <Link href="/contact">{t("contact")}</Link>
       </nav>
     </footer>
