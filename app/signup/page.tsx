@@ -31,7 +31,7 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/verify-identity");
+    router.push("/");
   }
 
   return (
