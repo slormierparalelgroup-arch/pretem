@@ -280,6 +280,14 @@ main {
   text-align: center;
 }
 
+.auth-tagline {
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 800;
+  margin: -8px 0 0;
+  text-align: center;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

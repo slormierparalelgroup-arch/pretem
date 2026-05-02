@@ -40,6 +40,7 @@ export default function LoginPage() {
     <AuthShell>
       <form className="form auth-form" onSubmit={submit}>
         <h1>{t("login")}</h1>
+        <p className="auth-tagline">{t("loginTagline")}</p>
         <label>
           {t("email")}
           <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
