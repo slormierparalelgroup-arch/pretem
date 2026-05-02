@@ -63,6 +63,10 @@ create table if not exists public.loans (
   agreement_version text,
   credit_reporting_acknowledged boolean not null default false,
   public_story_consent boolean not null default false,
+  disbursement_transfer_id text,
+  disbursed_at timestamptz,
+  repayment_transfer_id text,
+  repayment_submitted_at timestamptz,
   due_date timestamptz,
   paid_at timestamptz,
   created_at timestamptz not null default now()
@@ -100,6 +104,18 @@ add column if not exists credit_reporting_acknowledged boolean not null default 
 
 alter table public.loans
 add column if not exists public_story_consent boolean not null default false;
+
+alter table public.loans
+add column if not exists disbursement_transfer_id text;
+
+alter table public.loans
+add column if not exists disbursed_at timestamptz;
+
+alter table public.loans
+add column if not exists repayment_transfer_id text;
+
+alter table public.loans
+add column if not exists repayment_submitted_at timestamptz;
 
 alter table public.loans
 drop constraint if exists loans_status_check;

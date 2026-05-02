@@ -42,7 +42,7 @@ type AvailableVerificationImage = VerificationImage & {
 };
 
 const adminLoanColumns =
-  "id, user_id, full_name, phone, amount, repayment, destination_country, currency, payout_method, payout_details, repayment_days, interest_rate, reference, status, id_photo_url, selfie_url, selfie_with_id_url, terms_accepted, terms_accepted_at, agreement_version, credit_reporting_acknowledged, public_story_consent, due_date, paid_at, created_at";
+  "id, user_id, full_name, phone, amount, repayment, destination_country, currency, payout_method, payout_details, repayment_days, interest_rate, reference, status, id_photo_url, selfie_url, selfie_with_id_url, terms_accepted, terms_accepted_at, agreement_version, credit_reporting_acknowledged, public_story_consent, disbursement_transfer_id, disbursed_at, repayment_transfer_id, repayment_submitted_at, due_date, paid_at, created_at";
 
 const legacyAdminLoanColumns =
   "id, user_id, full_name, phone, amount, repayment, destination_country, currency, payout_method, payout_details, repayment_days, interest_rate, reference, status, id_photo_url, selfie_url, selfie_with_id_url, due_date, paid_at, created_at";
@@ -54,6 +54,7 @@ export default function AdminPage() {
   const [profiles, setProfiles] = useState<ProfileVerification[]>([]);
   const [section, setSection] = useState<AdminSection>("verification");
   const [userSearch, setUserSearch] = useState("");
+  const [transferIds, setTransferIds] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -192,6 +193,25 @@ export default function AdminPage() {
     setMessage("");
     const patch = nextStatus === "paid" ? { status: nextStatus, paid_at: new Date().toISOString() } : { status: nextStatus };
     const { error } = await supabase.from("loans").update(patch).eq("id", id);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    await refreshAdminData();
+  }
+
+  async function markMoneySent(loan: AdminLoan) {
+    const transferId = (transferIds[loan.id] || loan.disbursement_transfer_id || "").trim();
+    if (!transferId) {
+      setMessage(t("transferIdRequired"));
+      return;
+    }
+
+    setMessage("");
+    const { error } = await supabase
+      .from("loans")
+      .update({ disbursement_transfer_id: transferId, disbursed_at: new Date().toISOString() })
+      .eq("id", loan.id);
     if (error) {
       setMessage(error.message);
       return;
@@ -428,6 +448,8 @@ export default function AdminPage() {
                 <th>{t("payoutInfo")}</th>
                 <th>{t("verification")}</th>
                 <th>{t("status")}</th>
+                <th>{t("moneySent")}</th>
+                <th>{t("repaymentProof")}</th>
                 <th>{t("actions")}</th>
               </tr>
             </thead>
@@ -457,6 +479,26 @@ export default function AdminPage() {
                     <span className={`status ${loan.status}`}>{statusLabel(loan.status)}</span>
                   </td>
                   <td>
+                    {loan.disbursed_at ? (
+                      <>
+                        <span className="status approved">{t("sent")}</span>
+                        <span className="muted table-subtext">{loan.disbursement_transfer_id || t("notProvided")}</span>
+                      </>
+                    ) : (
+                      <span className="muted">{t("notProvided")}</span>
+                    )}
+                  </td>
+                  <td>
+                    {loan.repayment_transfer_id ? (
+                      <>
+                        <span className="status pending">{t("submitted")}</span>
+                        <span className="muted table-subtext">{loan.repayment_transfer_id}</span>
+                      </>
+                    ) : (
+                      <span className="muted">{t("notProvided")}</span>
+                    )}
+                  </td>
+                  <td>
                     <div className="table-actions">
                       {mode === "request" ? (
                         <button className="compact" disabled={loan.verification_status !== "verified"} onClick={() => updateStatus(loan.id, "approved")}>
@@ -464,9 +506,20 @@ export default function AdminPage() {
                         </button>
                       ) : null}
                       {mode === "management" && loan.status === "approved" ? (
-                        <button className="compact" onClick={() => updateStatus(loan.id, "paid")}>
-                          {t("markPaid")}
-                        </button>
+                        <>
+                          <input
+                            className="compact-input"
+                            onChange={(event) => setTransferIds((values) => ({ ...values, [loan.id]: event.target.value }))}
+                            placeholder={t("transferId")}
+                            value={transferIds[loan.id] ?? loan.disbursement_transfer_id ?? ""}
+                          />
+                          <button className="compact" onClick={() => markMoneySent(loan)}>
+                            {t("markMoneySent")}
+                          </button>
+                          <button className="compact" onClick={() => updateStatus(loan.id, "paid")}>
+                            {t("markPaid")}
+                          </button>
+                        </>
                       ) : null}
                       <button className="danger compact" onClick={() => updateStatus(loan.id, "rejected")}>
                         {t("rejectLoan")}

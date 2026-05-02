@@ -43,6 +43,10 @@ export type Loan = {
   agreement_version: string | null;
   credit_reporting_acknowledged: boolean | null;
   public_story_consent: boolean | null;
+  disbursement_transfer_id: string | null;
+  disbursed_at: string | null;
+  repayment_transfer_id: string | null;
+  repayment_submitted_at: string | null;
   due_date: string | null;
   paid_at: string | null;
   created_at: string;

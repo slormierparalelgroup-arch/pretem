@@ -34,6 +34,8 @@ export function buildLoanAgreementText(loan: Loan, t: Translator) {
     `Payout method: ${getPayoutMethodLabel(loan.payout_method, t)}`,
     `Payout details: ${formatPayoutDetails(loan.payout_details, t)}`,
     `Status: ${t(`status${loan.status.charAt(0).toUpperCase()}${loan.status.slice(1)}`)}`,
+    `Disbursement transfer ID: ${loan.disbursement_transfer_id || t("notProvided")}`,
+    `Repayment transfer ID: ${loan.repayment_transfer_id || t("notProvided")}`,
     "",
     "Borrower acknowledgments",
     "- I certify that the information and documents I submitted are true, complete, and belong to me.",

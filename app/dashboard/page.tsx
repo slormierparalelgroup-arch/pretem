@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [profile, setProfile] = useState<ProfileStatus | null>(null);
   const [status, setStatus] = useState<"all" | LoanStatus>("all");
+  const [repaymentIds, setRepaymentIds] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -61,6 +62,26 @@ export default function DashboardPage() {
       return;
     }
     setMessage(t("cancelRequestSuccess"));
+    await loadLoans();
+  }
+
+  async function submitRepayment(loan: Loan) {
+    const transferId = (repaymentIds[loan.id] || "").trim();
+    if (!transferId) {
+      setMessage(t("transferIdRequired"));
+      return;
+    }
+
+    setMessage("");
+    const { error } = await supabase
+      .from("loans")
+      .update({ repayment_transfer_id: transferId, repayment_submitted_at: new Date().toISOString() })
+      .eq("id", loan.id);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setMessage(t("repaymentSubmitted"));
     await loadLoans();
   }
 
@@ -176,6 +197,20 @@ export default function DashboardPage() {
                 <button className="secondary compact" onClick={() => downloadLoanAgreement(loan, t)}>
                   {t("downloadAgreement")}
                 </button>
+              ) : null}
+              {loan.disbursement_transfer_id ? <span className="muted">{t("moneySent")}: {loan.disbursement_transfer_id}</span> : null}
+              {loan.status === "approved" ? (
+                <>
+                  <input
+                    className="compact-input"
+                    onChange={(event) => setRepaymentIds((values) => ({ ...values, [loan.id]: event.target.value }))}
+                    placeholder={t("repaymentTransferId")}
+                    value={repaymentIds[loan.id] ?? loan.repayment_transfer_id ?? ""}
+                  />
+                  <button className="secondary compact" onClick={() => submitRepayment(loan)}>
+                    {t("submitRepayment")}
+                  </button>
+                </>
               ) : null}
             </div>
           </article>
