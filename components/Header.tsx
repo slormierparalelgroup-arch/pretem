@@ -3,7 +3,7 @@
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LanguageSelect, useLanguage } from "@/components/LanguageProvider";
 import { supabase } from "@/lib/supabase";
 
@@ -11,6 +11,7 @@ export function Header() {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     async function checkAdmin() {
@@ -35,6 +36,25 @@ export function Header() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function closeOnOutsideClick(event: MouseEvent | TouchEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (menuRef.current?.contains(target)) return;
+      setIsOpen(false);
+    }
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("touchstart", closeOnOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("touchstart", closeOnOutsideClick);
+    };
+  }, [isOpen]);
+
   return (
     <header className="site-header">
       <Link className="brand" href="/">
@@ -42,7 +62,7 @@ export function Header() {
       </Link>
       <div className="header-actions">
         <LanguageSelect />
-        <div className="menu-wrapper">
+        <div className="menu-wrapper" ref={menuRef}>
           <button
             aria-expanded={isOpen}
             aria-label={t("menu")}
