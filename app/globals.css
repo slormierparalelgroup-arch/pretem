@@ -302,7 +302,7 @@ main {
 .admin-section-tabs {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 18px;
 }
 
@@ -331,6 +331,55 @@ main {
 
 .admin-section-tabs button.secondary span {
   background: var(--surface-2);
+}
+
+.admin-users-card {
+  overflow: hidden;
+  padding: 0;
+}
+
+.admin-table-toolbar {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr minmax(240px, 360px);
+  padding: 16px;
+}
+
+.admin-table-toolbar h2 {
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 1120px;
+  width: 100%;
+}
+
+.admin-table th,
+.admin-table td {
+  border-top: 1px solid var(--line);
+  padding: 9px 10px;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.admin-table th {
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-table tbody tr:hover {
+  background: #fffaf4;
 }
 
 .button,
@@ -778,6 +827,7 @@ button.compact {
 
   .stepper,
   .admin-section-tabs,
+  .admin-table-toolbar,
   .thumbs {
     grid-template-columns: 1fr 1fr;
   }

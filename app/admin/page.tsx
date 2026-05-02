@@ -9,7 +9,7 @@ import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
-type AdminSection = "verification" | "loanRequests" | "loanManagement";
+type AdminSection = "verification" | "loanRequests" | "loanManagement" | "users";
 
 type VerificationStatus = "not_submitted" | "pending" | "verified" | "rejected";
 
@@ -30,6 +30,7 @@ type ProfileVerification = SignedVerification & {
   full_name: string | null;
   country: string | null;
   phone: string | null;
+  credit_score: number | null;
   verification_status: VerificationStatus;
   id_photo_url: string | null;
   selfie_url: string | null;
@@ -43,6 +44,7 @@ export default function AdminPage() {
   const [loans, setLoans] = useState<AdminLoan[]>([]);
   const [profiles, setProfiles] = useState<ProfileVerification[]>([]);
   const [section, setSection] = useState<AdminSection>("verification");
+  const [userSearch, setUserSearch] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +54,45 @@ export default function AdminPage() {
 
   const pendingLoans = useMemo(() => loans.filter((loan) => loan.status === "pending"), [loans]);
   const managedLoans = useMemo(() => loans.filter((loan) => loan.status === "approved" || loan.status === "paid"), [loans]);
+  const userRows = useMemo(() => {
+    const search = userSearch.trim().toLowerCase();
+
+    return profiles
+      .map((profile) => {
+        const userLoans = loans.filter((loan) => loan.user_id === profile.id);
+        const paidLoans = userLoans.filter((loan) => loan.status === "paid").length;
+        const approvedLoans = userLoans.filter((loan) => loan.status === "approved").length;
+        const pendingUserLoans = userLoans.filter((loan) => loan.status === "pending").length;
+        const rejectedLoans = userLoans.filter((loan) => loan.status === "rejected").length;
+        const totalBorrowed = userLoans.reduce((sum, loan) => sum + Number(loan.amount || 0), 0);
+        const totalRepayment = userLoans.reduce((sum, loan) => sum + Number(loan.repayment || 0), 0);
+        const lastLoan = userLoans[0];
+
+        return {
+          profile,
+          userLoans,
+          paidLoans,
+          approvedLoans,
+          pendingUserLoans,
+          rejectedLoans,
+          totalBorrowed,
+          totalRepayment,
+          lastLoan
+        };
+      })
+      .filter((row) => {
+        if (!search) return true;
+        const values = [
+          row.profile.full_name,
+          row.profile.email,
+          row.profile.phone,
+          row.profile.country,
+          row.profile.verification_status,
+          row.lastLoan?.reference
+        ];
+        return values.some((value) => (value || "").toLowerCase().includes(search));
+      });
+  }, [loans, profiles, userSearch]);
 
   useEffect(() => {
     async function load() {
@@ -92,7 +133,7 @@ export default function AdminPage() {
 
     const { data: profileRows, error: profilesError } = await supabase
       .from("profiles")
-      .select("id, email, full_name, country, phone, verification_status, id_photo_url, selfie_url, selfie_with_id_url, created_at")
+      .select("id, email, full_name, country, phone, credit_score, verification_status, id_photo_url, selfie_url, selfie_with_id_url, created_at")
       .order("created_at", { ascending: false });
 
     if (profilesError) {
@@ -200,7 +241,8 @@ export default function AdminPage() {
   function sectionCount(nextSection: AdminSection) {
     if (nextSection === "verification") return verificationRequests.length;
     if (nextSection === "loanRequests") return pendingLoans.length;
-    return managedLoans.length;
+    if (nextSection === "loanManagement") return managedLoans.length;
+    return userRows.length;
   }
 
   function openImage(url: string) {
@@ -391,6 +433,65 @@ export default function AdminPage() {
     );
   }
 
+  function UsersDatabase() {
+    return (
+      <div className="card admin-users-card">
+        <div className="admin-table-toolbar">
+          <div>
+            <h2>{t("usersDatabase")}</h2>
+            <p className="muted">{t("usersDatabaseBody")}</p>
+          </div>
+          <label>
+            {t("searchUsers")}
+            <input value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder={t("searchUsersPlaceholder")} />
+          </label>
+        </div>
+
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>{t("fullName")}</th>
+                <th>{t("email")}</th>
+                <th>{t("phoneNumber")}</th>
+                <th>{t("signupCountry")}</th>
+                <th>{t("verification")}</th>
+                <th>{t("creditScore")}</th>
+                <th>{t("creditHistory")}</th>
+                <th>{t("loanSummary")}</th>
+                <th>{t("lastLoan")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {userRows.map((row) => (
+                <tr key={row.profile.id}>
+                  <td>{row.profile.full_name || t("notProvided")}</td>
+                  <td>{row.profile.email || t("notProvided")}</td>
+                  <td>{row.profile.phone || t("notProvided")}</td>
+                  <td>{row.profile.country || t("notProvided")}</td>
+                  <td>
+                    <span className={`status ${row.profile.verification_status}`}>{verificationLabel(row.profile.verification_status)}</span>
+                  </td>
+                  <td>{row.profile.credit_score ?? 500}</td>
+                  <td>
+                    {t("paidShort")}: {row.paidLoans} · {t("approvedShort")}: {row.approvedLoans} · {t("pendingShort")}: {row.pendingUserLoans} ·{" "}
+                    {t("rejectedShort")}: {row.rejectedLoans}
+                  </td>
+                  <td>
+                    {row.userLoans.length} {t("loansShort")} · {formatMoney(row.totalBorrowed)} / {formatMoney(row.totalRepayment)}
+                  </td>
+                  <td>{row.lastLoan ? `${row.lastLoan.reference} · ${statusLabel(row.lastLoan.status)}` : t("notProvided")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {userRows.length === 0 ? <p className="notice">{t("noAdminItems")}</p> : null}
+      </div>
+    );
+  }
+
   return (
     <section className="page">
       <div className="toolbar">
@@ -409,7 +510,7 @@ export default function AdminPage() {
       {!loading && !message ? (
         <>
           <div className="admin-section-tabs" aria-label={t("adminDashboard")}>
-            {(["verification", "loanRequests", "loanManagement"] as AdminSection[]).map((item) => (
+            {(["verification", "loanRequests", "loanManagement", "users"] as AdminSection[]).map((item) => (
               <button className={section === item ? "active" : "secondary"} key={item} onClick={() => setSection(item)} type="button">
                 {t(item)}
                 <span>{sectionCount(item)}</span>
@@ -421,7 +522,8 @@ export default function AdminPage() {
             {section === "verification" ? verificationRequests.map((profile) => <VerificationCard key={profile.id} profile={profile} />) : null}
             {section === "loanRequests" ? pendingLoans.map((loan) => <LoanCard key={loan.id} loan={loan} mode="request" />) : null}
             {section === "loanManagement" ? managedLoans.map((loan) => <LoanCard key={loan.id} loan={loan} mode="management" />) : null}
-            {sectionCount(section) === 0 ? <p className="notice">{t("noAdminItems")}</p> : null}
+            {section === "users" ? <UsersDatabase /> : null}
+            {section !== "users" && sectionCount(section) === 0 ? <p className="notice">{t("noAdminItems")}</p> : null}
           </div>
         </>
       ) : null}
