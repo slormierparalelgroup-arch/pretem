@@ -23,6 +23,7 @@ const dictionaries: Record<Language, Dictionary> = {
     accountInformation: "Enfòmasyon kont",
     accountInfoAutoFilled: "Enfòmasyon sa yo soti nan pwofil ou. Pou chanje yo, ale nan",
     activeLoanExists: "Ou deja gen yon prè ki poko peye. Ou dwe fèmen li anvan ou mande yon lòt.",
+    acceptRepayment: "Aksepte ranbousman",
     acceptCreditReporting: "Mwen konprann si mwen pa respekte kondisyon ranbousman yo, PRETEM ka voye dosye a nan koleksyon oswa bay biwo kredi/konsomatè yo sèlman jan lalwa pèmèt sa.",
     acceptLawfulRecovery: "Mwen konprann si mwen pa respekte kondisyon prè a, PRETEM ka itilize mwayen legal pou rekipere lajan an, tankou rapèl prive, koleksyon, aksyon legal, oswa rapò kredi jan lalwa pèmèt sa.",
     acceptLoanTerms: "Mwen dakò ak tèm yo, total pou peye a, dat limit la, ak responsablite pou bay bon enfòmasyon.",
@@ -226,7 +227,8 @@ const dictionaries: Record<Language, Dictionary> = {
     verification: "Verifikasyon",
     verifyBeforeLoan: "Tanpri verifye idantite ou anvan ou mande prè.",
     verifyIdentity: "Verifye idantite",
-    verifyIdentityAction: "Verifye idantite"
+    verifyIdentityAction: "Verifye idantite",
+    waitForRepaymentProof: "Tann itilizatè a voye kantite lajan ak ID tranzaksyon an."
   },
   en: {
     admin: "Admin",
@@ -244,6 +246,7 @@ const dictionaries: Record<Language, Dictionary> = {
     accountInformation: "Account information",
     accountInfoAutoFilled: "This information comes from your profile. To change it, go to",
     activeLoanExists: "You already have an unpaid loan. Close it before requesting another one.",
+    acceptRepayment: "Accept repayment",
     acceptCreditReporting: "I understand that if I do not respect repayment terms, PRETEM may send the account to collections or report it to credit/consumer reporting agencies only as permitted by law.",
     acceptLawfulRecovery: "I understand that if I do not respect the loan terms, PRETEM may use lawful recovery methods, including private reminders, collections, legal action, or credit reporting as permitted by law.",
     acceptLoanTerms: "I agree to the terms, total payback amount, due date, and responsibility to provide accurate information.",
@@ -447,7 +450,8 @@ const dictionaries: Record<Language, Dictionary> = {
     verification: "Verification",
     verifyBeforeLoan: "Please verify your identity before requesting a loan.",
     verifyIdentity: "Verify identity",
-    verifyIdentityAction: "Verify identity"
+    verifyIdentityAction: "Verify identity",
+    waitForRepaymentProof: "Wait for the user to submit amount and transaction ID."
   },
   es: {
     admin: "Admin",
@@ -465,6 +469,7 @@ const dictionaries: Record<Language, Dictionary> = {
     accountInformation: "Información de la cuenta",
     accountInfoAutoFilled: "Esta información viene de tu perfil. Para cambiarla, ve a",
     activeLoanExists: "Ya tienes un préstamo sin pagar. Ciérralo antes de solicitar otro.",
+    acceptRepayment: "Aceptar pago",
     acceptCreditReporting: "Entiendo que si no respeto los términos de pago, PRETEM puede enviar la cuenta a cobranza o reportarla a agencias de crédito/consumidor solo cuando la ley lo permita.",
     acceptLawfulRecovery: "Entiendo que si no respeto los términos del préstamo, PRETEM puede usar métodos legales de recuperación, como recordatorios privados, cobranza, acción legal o reporte de crédito cuando la ley lo permita.",
     acceptLoanTerms: "Acepto los términos, el total a pagar, la fecha límite y la responsabilidad de dar información correcta.",
@@ -668,7 +673,8 @@ const dictionaries: Record<Language, Dictionary> = {
     verification: "Verificación",
     verifyBeforeLoan: "Verifica tu identidad antes de solicitar un préstamo.",
     verifyIdentity: "Verificar identidad",
-    verifyIdentityAction: "Verificar identidad"
+    verifyIdentityAction: "Verificar identidad",
+    waitForRepaymentProof: "Espera que el usuario envíe el monto y el ID de transacción."
   }
 };
 

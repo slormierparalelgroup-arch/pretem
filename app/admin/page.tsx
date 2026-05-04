@@ -613,9 +613,13 @@ export default function AdminPage() {
                       {mode === "management" && loan.status === "approved" ? (
                         <>
                           <TransferIdControl initialValue={loan.disbursement_transfer_id || ""} loan={loan} onMarkMoneySent={markMoneySent} t={t} />
-                          <button className="compact" onClick={() => updateStatus(loan.id, "paid")}>
-                            {t("markPaid")}
-                          </button>
+                          {loan.repayment_transfer_id && Number(loan.repayment_submitted_amount || 0) === Number(loan.repayment) ? (
+                            <button className="compact success" onClick={() => updateStatus(loan.id, "paid")}>
+                              {t("acceptRepayment")}
+                            </button>
+                          ) : (
+                            <span className="muted table-subtext">{t("waitForRepaymentProof")}</span>
+                          )}
                         </>
                       ) : null}
                       <button className="danger compact" onClick={() => updateStatus(loan.id, "rejected")}>
