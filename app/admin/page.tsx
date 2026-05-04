@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -411,6 +412,47 @@ export default function AdminPage() {
     printWindow.document.close();
   }
 
+  function DocumentPreviewCard({
+    displayName,
+    image
+  }: {
+    displayName: string;
+    image: AvailableVerificationImage;
+  }) {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+      let isMounted = true;
+
+      signVerificationPath(image.path).then((signedUrl) => {
+        if (isMounted) setUrl(signedUrl);
+      });
+
+      return () => {
+        isMounted = false;
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [image.path]);
+
+    return (
+      <div className="admin-document-preview">
+        <button className="admin-document-image" disabled={!url} onClick={() => openImage(image.path)} type="button">
+          {url ? (
+            <Image alt={image.label} height={96} src={url} unoptimized width={128} />
+          ) : (
+            <span>{t("loadingTracker")}</span>
+          )}
+        </button>
+        <div>
+          <strong>{image.label}</strong>
+          <button className="secondary compact" onClick={() => downloadImage(image.path, `${displayName}-${image.label}.jpg`)}>
+            {t("download")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   function DocumentButtons({ profile }: { profile: ProfileVerification }) {
     const displayName = profile.full_name || profile.email || t("notProvided");
     const images = verificationImages(profile);
@@ -418,16 +460,9 @@ export default function AdminPage() {
     if (!images.length) return <span className="muted">{t("notProvided")}</span>;
 
     return (
-      <div className="table-actions">
+      <div className="admin-document-grid">
         {images.map((image) => (
-          <span className="table-action-group" key={image.label}>
-            <button className="secondary compact" onClick={() => openImage(image.path)}>
-              {image.label}
-            </button>
-            <button className="secondary compact" onClick={() => downloadImage(image.path, `${displayName}-${image.label}.jpg`)}>
-              {t("download")}
-            </button>
-          </span>
+          <DocumentPreviewCard displayName={displayName} image={image} key={image.label} />
         ))}
       </div>
     );

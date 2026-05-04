@@ -399,6 +399,52 @@ main {
   gap: 4px;
 }
 
+.admin-document-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, 128px);
+}
+
+.admin-document-preview {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+}
+
+.admin-document-preview strong {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.admin-document-image {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  cursor: zoom-in;
+  min-height: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.admin-document-image img,
+.admin-document-image span {
+  align-items: center;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  font-size: 12px;
+  justify-content: center;
+  object-fit: cover;
+  width: 100%;
+}
+
+.admin-document-image:hover {
+  border-color: var(--accent-2);
+}
+
 .table-subtext {
   display: block;
   font-size: 12px;
