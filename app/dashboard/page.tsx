@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
+import { getCurrentUser } from "@/lib/auth";
 import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
 import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -38,15 +39,16 @@ export default function DashboardPage() {
   }, [router]);
 
   async function loadLoans() {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
+    setLoading(true);
+    const user = await getCurrentUser();
+    if (!user) {
       router.push("/login");
       return;
     }
 
     const [{ data }, { data: profileData }] = await Promise.all([
-      supabase.from("loans").select("*").eq("user_id", userData.user.id).order("created_at", { ascending: false }),
-      supabase.from("profiles").select("verification_status, verified_at").eq("id", userData.user.id).maybeSingle()
+      supabase.from("loans").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("profiles").select("verification_status, verified_at").eq("id", user.id).maybeSingle()
     ]);
 
     setLoans(data || []);

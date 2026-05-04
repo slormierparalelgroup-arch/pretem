@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LanguageSelect, useLanguage } from "@/components/LanguageProvider";
+import { getCurrentUser } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
 export function Header() {
@@ -15,8 +16,7 @@ export function Header() {
 
   useEffect(() => {
     async function checkAdmin() {
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData.user;
+      const user = await getCurrentUser();
       if (!user) {
         setShowAdmin(false);
         return;
