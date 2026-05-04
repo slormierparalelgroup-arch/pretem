@@ -59,6 +59,34 @@ function withAdminTimeout<T>(promise: PromiseLike<T>, message: string) {
   });
 }
 
+function TransferIdControl({
+  initialValue,
+  loan,
+  onMarkMoneySent,
+  t
+}: {
+  initialValue: string;
+  loan: AdminLoan;
+  onMarkMoneySent: (loan: AdminLoan, transferId: string) => void;
+  t: (key: string) => string;
+}) {
+  const [value, setValue] = useState(initialValue);
+
+  return (
+    <>
+      <input
+        className="compact-input"
+        onChange={(event) => setValue(event.target.value)}
+        placeholder={t("transferId")}
+        value={value}
+      />
+      <button className="compact" onClick={() => onMarkMoneySent(loan, value)}>
+        {t("markMoneySent")}
+      </button>
+    </>
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -66,7 +94,6 @@ export default function AdminPage() {
   const [profiles, setProfiles] = useState<ProfileVerification[]>([]);
   const [section, setSection] = useState<AdminSection>("verification");
   const [userSearch, setUserSearch] = useState("");
-  const [transferIds, setTransferIds] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -226,8 +253,8 @@ export default function AdminPage() {
     await refreshAdminData();
   }
 
-  async function markMoneySent(loan: AdminLoan) {
-    const transferId = (transferIds[loan.id] || loan.disbursement_transfer_id || "").trim();
+  async function markMoneySent(loan: AdminLoan, submittedTransferId: string) {
+    const transferId = (submittedTransferId || loan.disbursement_transfer_id || "").trim();
     if (!transferId) {
       setMessage(t("transferIdRequired"));
       return;
@@ -540,15 +567,7 @@ export default function AdminPage() {
                       ) : null}
                       {mode === "management" && loan.status === "approved" ? (
                         <>
-                          <input
-                            className="compact-input"
-                            onChange={(event) => setTransferIds((values) => ({ ...values, [loan.id]: event.target.value }))}
-                            placeholder={t("transferId")}
-                            value={transferIds[loan.id] ?? loan.disbursement_transfer_id ?? ""}
-                          />
-                          <button className="compact" onClick={() => markMoneySent(loan)}>
-                            {t("markMoneySent")}
-                          </button>
+                          <TransferIdControl initialValue={loan.disbursement_transfer_id || ""} loan={loan} onMarkMoneySent={markMoneySent} t={t} />
                           <button className="compact" onClick={() => updateStatus(loan.id, "paid")}>
                             {t("markPaid")}
                           </button>

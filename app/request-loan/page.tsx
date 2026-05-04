@@ -61,10 +61,12 @@ export default function RequestLoanPage() {
       setUserId(user.id);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("verification_status")
+        .select("full_name, phone, verification_status")
         .eq("id", user.id)
         .maybeSingle();
 
+      setFullName(profile?.full_name || "");
+      setPhone(profile?.phone || "");
       const nextStatus = (profile?.verification_status || "not_submitted") as VerificationStatus;
       setVerificationStatus(nextStatus);
 
