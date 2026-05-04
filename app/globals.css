@@ -417,7 +417,6 @@ main {
 .admin-document-preview strong {
   display: block;
   font-size: 12px;
-  margin-bottom: 6px;
 }
 
 .admin-document-image {
@@ -443,6 +442,53 @@ main {
 
 .admin-document-image:hover {
   border-color: var(--accent-2);
+}
+
+.image-modal {
+  align-items: center;
+  background: rgba(11, 31, 58, 0.78);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 50;
+}
+
+.image-modal-panel {
+  background: white;
+  border-radius: var(--radius);
+  display: grid;
+  gap: 12px;
+  max-height: calc(100vh - 48px);
+  max-width: min(1100px, 100%);
+  overflow: auto;
+  padding: 16px;
+}
+
+.image-modal-panel img {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  height: auto;
+  max-height: 78vh;
+  object-fit: contain;
+  width: 100%;
+}
+
+.sent-transfer-box {
+  background: #ecfdf3;
+  border: 1px solid #a7e3bd;
+  border-radius: var(--radius);
+  color: var(--ok);
+  display: grid;
+  gap: 6px;
+  min-width: 150px;
+  padding: 8px;
+}
+
+.sent-transfer-box strong {
+  color: var(--text);
+  font-size: 13px;
 }
 
 .table-subtext {

@@ -43,6 +43,12 @@ type AvailableVerificationImage = VerificationImage & {
   path: string;
 };
 
+type PreviewImage = {
+  filename: string;
+  label: string;
+  url: string;
+} | null;
+
 function withAdminTimeout<T>(promise: PromiseLike<T>, message: string) {
   return new Promise<T>((resolve, reject) => {
     const timeout = window.setTimeout(() => reject(new Error(message)), 15000);
@@ -73,6 +79,15 @@ function TransferIdControl({
 }) {
   const [value, setValue] = useState(initialValue);
 
+  if (loan.disbursed_at) {
+    return (
+      <div className="sent-transfer-box">
+        <span className="status approved">{t("moneySent")}</span>
+        <strong>{initialValue || t("notProvided")}</strong>
+      </div>
+    );
+  }
+
   return (
     <>
       <input
@@ -81,8 +96,8 @@ function TransferIdControl({
         placeholder={t("transferId")}
         value={value}
       />
-      <button className={`compact ${loan.disbursed_at ? "success" : ""}`} onClick={() => onMarkMoneySent(loan, value)}>
-        {loan.disbursed_at ? t("moneySent") : t("markMoneySent")}
+      <button className="compact success" onClick={() => onMarkMoneySent(loan, value)}>
+        {t("markMoneySent")}
       </button>
     </>
   );
@@ -93,6 +108,7 @@ export default function AdminPage() {
   const { t } = useLanguage();
   const [loans, setLoans] = useState<AdminLoan[]>([]);
   const [profiles, setProfiles] = useState<ProfileVerification[]>([]);
+  const [previewImage, setPreviewImage] = useState<PreviewImage>(null);
   const [section, setSection] = useState<AdminSection>("verification");
   const [userSearch, setUserSearch] = useState("");
   const [message, setMessage] = useState("");
@@ -323,22 +339,10 @@ export default function AdminPage() {
     return t("noAdminItems");
   }
 
-  async function openImage(path: string) {
+  async function openImage(path: string, label: string, filename: string) {
     const url = await signVerificationPath(path);
     if (!url) return;
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-
-  async function downloadImage(path: string, filename: string) {
-    const url = await signVerificationPath(path);
-    if (!url) return;
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename.replace(/[^a-z0-9.-]+/gi, "-").toLowerCase();
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    setPreviewImage({ filename, label, url });
   }
 
   function escapeHtml(value: string) {
@@ -436,7 +440,12 @@ export default function AdminPage() {
 
     return (
       <div className="admin-document-preview">
-        <button className="admin-document-image" disabled={!url} onClick={() => openImage(image.path)} type="button">
+        <button
+          className="admin-document-image"
+          disabled={!url}
+          onClick={() => openImage(image.path, image.label, `${displayName}-${image.label}.jpg`)}
+          type="button"
+        >
           {url ? (
             <Image alt={image.label} height={96} src={url} unoptimized width={128} />
           ) : (
@@ -445,9 +454,6 @@ export default function AdminPage() {
         </button>
         <div>
           <strong>{image.label}</strong>
-          <button className="secondary compact" onClick={() => downloadImage(image.path, `${displayName}-${image.label}.jpg`)}>
-            {t("download")}
-          </button>
         </div>
       </div>
     );
@@ -701,6 +707,29 @@ export default function AdminPage() {
 
       {message ? <p className="notice">{message}</p> : null}
       {loading ? <p className="notice">{t("loadingAdminData")}</p> : null}
+
+      {previewImage ? (
+        <div className="image-modal" role="dialog" aria-modal="true" aria-label={previewImage.label}>
+          <div className="image-modal-panel">
+            <div className="toolbar">
+              <strong>{previewImage.label}</strong>
+              <div className="actions">
+                <a
+                  className="button compact"
+                  download={previewImage.filename.replace(/[^a-z0-9.-]+/gi, "-").toLowerCase()}
+                  href={previewImage.url}
+                >
+                  {t("download")}
+                </a>
+                <button className="secondary compact" onClick={() => setPreviewImage(null)} type="button">
+                  {t("close")}
+                </button>
+              </div>
+            </div>
+            <Image alt={previewImage.label} height={900} src={previewImage.url} unoptimized width={1200} />
+          </div>
+        </div>
+      ) : null}
 
       {!loading && !message ? (
         <>
