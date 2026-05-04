@@ -115,11 +115,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
 
   const verificationRequests = useMemo(() => {
-    return profiles.filter(
-      (profile) =>
-        profile.verification_status !== "not_submitted" ||
-        Boolean(profile.id_photo_url || profile.selfie_url || profile.selfie_with_id_url)
-    );
+    return profiles.filter((profile) => {
+      const hasDocuments = Boolean(profile.id_photo_url || profile.selfie_url || profile.selfie_with_id_url);
+      return profile.verification_status !== "verified" && (profile.verification_status !== "not_submitted" || hasDocuments);
+    });
   }, [profiles]);
 
   const pendingLoans = useMemo(() => loans.filter((loan) => loan.status === "pending"), [loans]);
@@ -657,6 +656,7 @@ export default function AdminPage() {
                 <th>{t("phoneNumber")}</th>
                 <th>{t("signupCountry")}</th>
                 <th>{t("verification")}</th>
+                <th>{t("documents")}</th>
                 <th>{t("creditScore")}</th>
                 <th>{t("creditHistory")}</th>
                 <th>{t("loanSummary")}</th>
@@ -672,6 +672,9 @@ export default function AdminPage() {
                   <td>{row.profile.country || t("notProvided")}</td>
                   <td>
                     <span className={`status ${row.profile.verification_status}`}>{verificationLabel(row.profile.verification_status)}</span>
+                  </td>
+                  <td>
+                    <DocumentButtons profile={row.profile} />
                   </td>
                   <td>{row.profile.credit_score ?? 500}</td>
                   <td>

@@ -780,6 +780,7 @@ select:focus {
 }
 
 .status.approved,
+.status.verified,
 .status.paid {
   background: #dcf7e5;
   color: var(--ok);
@@ -790,8 +791,14 @@ select:focus {
   color: var(--danger);
 }
 
-.status.canceled {
+.status.canceled,
+.status.not_submitted {
   background: #e8edf3;
+  color: var(--muted);
+}
+
+input[readonly] {
+  background: #f8fbff;
   color: var(--muted);
 }
 

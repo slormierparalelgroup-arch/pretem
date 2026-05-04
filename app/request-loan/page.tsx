@@ -61,7 +61,7 @@ export default function RequestLoanPage() {
       setUserId(user.id);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, phone, verification_status")
+        .select("full_name, country, phone, verification_status")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -69,8 +69,14 @@ export default function RequestLoanPage() {
       setPhone(profile?.phone || "");
       const nextStatus = (profile?.verification_status || "not_submitted") as VerificationStatus;
       setVerificationStatus(nextStatus);
+      const isProfileComplete = Boolean(profile?.full_name?.trim() && profile?.country?.trim() && profile?.phone?.trim());
 
-      if (nextStatus === "not_submitted" || nextStatus === "rejected") {
+      if (!isProfileComplete) {
+        router.push("/profile");
+        return;
+      }
+
+      if (nextStatus !== "verified") {
         router.push("/verify-identity");
       }
     }
@@ -79,7 +85,7 @@ export default function RequestLoanPage() {
   }, [router]);
 
   function canContinue() {
-    if (step === 0) return fullName.trim() && phone.trim();
+    if (step === 0) return fullName.trim() && phone.trim() && verificationStatus === "verified";
     if (step === 1) {
       if (numericAmount <= 0) return false;
       if (destinationCountry === "haiti") return haitiAccountName.trim() && mobileNumber.trim() && !validateHaitiPayoutPhone(payoutMethod, mobileNumber, t);
@@ -143,7 +149,8 @@ export default function RequestLoanPage() {
       dueDate.setDate(dueDate.getDate() + repaymentDays);
       const phoneError = destinationCountry === "haiti" ? validateHaitiPayoutPhone(payoutMethod, mobileNumber, t) : "";
       if (phoneError) throw new Error(phoneError);
-      if (verificationStatus === "not_submitted" || verificationStatus === "rejected") throw new Error(t("verifyBeforeLoan"));
+      if (!fullName.trim() || !phone.trim()) throw new Error(t("profileRequiredFields"));
+      if (verificationStatus !== "verified") throw new Error(t("verifyBeforeLoan"));
       if (!termsAccepted || !creditReportingAcknowledged || !lawfulRecoveryAcknowledged) throw new Error(t("agreementRequired"));
 
       const { error } = await supabase.from("loans").insert({
@@ -194,12 +201,16 @@ export default function RequestLoanPage() {
           <>
             <label>
               {t("fullName")}
-              <input value={fullName} onChange={(event) => setFullName(event.target.value)} required />
+              <input readOnly value={fullName} required />
             </label>
             <label>
               {t("phoneNumber")}
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} required />
+              <input readOnly value={phone} required />
             </label>
+            <p className="muted">
+              {t("accountInfoAutoFilled")}{" "}
+              <Link href="/profile">{t("profile")}</Link>
+            </p>
           </>
         ) : null}
 

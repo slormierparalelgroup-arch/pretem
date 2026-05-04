@@ -43,7 +43,12 @@ export default function VerifyIdentityPage() {
         .eq("id", user.id)
         .maybeSingle();
 
-      setStatus((profile?.verification_status || "not_submitted") as VerificationStatus);
+      const nextStatus = (profile?.verification_status || "not_submitted") as VerificationStatus;
+      setStatus(nextStatus);
+
+      if (nextStatus === "verified") {
+        router.push("/dashboard");
+      }
     }
 
     loadVerificationStatus();

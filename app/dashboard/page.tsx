@@ -14,6 +14,10 @@ const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "reje
 type VerificationStatus = "not_submitted" | "pending" | "verified" | "rejected";
 
 type ProfileStatus = {
+  email: string | null;
+  full_name: string | null;
+  phone: string | null;
+  country: string | null;
   verification_status: VerificationStatus;
   verified_at: string | null;
 };
@@ -48,7 +52,7 @@ export default function DashboardPage() {
 
     const [{ data }, { data: profileData }] = await Promise.all([
       supabase.from("loans").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("profiles").select("verification_status, verified_at").eq("id", user.id).maybeSingle()
+      supabase.from("profiles").select("email, full_name, phone, country, verification_status, verified_at").eq("id", user.id).maybeSingle()
     ]);
 
     setLoans(data || []);
@@ -105,12 +109,17 @@ export default function DashboardPage() {
     return t(`verification${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
   }
 
+  function firstName() {
+    return (profile?.full_name || "").trim().split(/\s+/)[0] || t("user");
+  }
+
   return (
     <section className="page">
       <div className="toolbar">
         <div>
-          <h1>{t("myLoans")}</h1>
+          <h1>{t("hiUser").replace("{name}", firstName())}</h1>
           <p className="muted">{t("loanHistoryBody")}</p>
+          {profile?.full_name ? <p className="muted">{t("fullName")}: {profile.full_name}</p> : null}
         </div>
         <div className="actions">
           <Link className="button secondary" href="/profile">
