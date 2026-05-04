@@ -246,6 +246,7 @@ export default function DashboardPage() {
                   ) : null}
                   <input
                     className="compact-input"
+                    disabled={Boolean(loan.repayment_transfer_id)}
                     min="0"
                     onChange={(event) => setRepaymentAmounts((values) => ({ ...values, [loan.id]: event.target.value }))}
                     placeholder={t("repaymentAmount")}
@@ -255,13 +256,16 @@ export default function DashboardPage() {
                   />
                   <input
                     className="compact-input"
+                    disabled={Boolean(loan.repayment_transfer_id)}
                     onChange={(event) => setRepaymentIds((values) => ({ ...values, [loan.id]: event.target.value }))}
                     placeholder={t("repaymentTransferId")}
                     value={repaymentIds[loan.id] ?? loan.repayment_transfer_id ?? ""}
                   />
-                  <button className="compact success" onClick={() => submitRepayment(loan)}>
-                    {t("submitPaymentId")}
-                  </button>
+                  {!loan.repayment_transfer_id ? (
+                    <button className="compact success" onClick={() => submitRepayment(loan)}>
+                      {t("submitPaymentId")}
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
             </div>

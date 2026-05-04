@@ -181,6 +181,7 @@ function RequestStatusContent() {
                   <>
                     <input
                       className="compact-input"
+                      disabled={Boolean(loan.repayment_transfer_id)}
                       min="0"
                       onChange={(event) => setRepaymentAmount(event.target.value)}
                       placeholder={t("repaymentAmount")}
@@ -190,13 +191,16 @@ function RequestStatusContent() {
                     />
                     <input
                       className="compact-input"
+                      disabled={Boolean(loan.repayment_transfer_id)}
                       onChange={(event) => setRepaymentTransferId(event.target.value)}
                       placeholder={t("repaymentTransferId")}
                       value={repaymentTransferId}
                     />
-                    <button className="compact success" disabled={loading} onClick={submitRepayment} type="button">
-                      {t("submitPaymentId")}
-                    </button>
+                    {!loan.repayment_transfer_id ? (
+                      <button className="compact success" disabled={loading} onClick={submitRepayment} type="button">
+                        {t("submitPaymentId")}
+                      </button>
+                    ) : null}
                   </>
                 ) : (
                   <Link className="button compact" href="/login">
