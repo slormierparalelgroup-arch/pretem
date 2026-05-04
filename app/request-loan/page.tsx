@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getAgreementVersion } from "@/lib/agreement";
+import { getCurrentUser } from "@/lib/auth";
 import { calculateInterest, calculateRepayment, generateReference, getRepaymentOption, repaymentOptions, RepaymentDays } from "@/lib/loans";
 import { DestinationCountry, getCountryOption, PayoutMethod, validateHaitiPayoutPhone } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -50,17 +51,18 @@ export default function RequestLoanPage() {
   const steps = [t("basicInfo"), t("loanInfo"), t("submitRequest")];
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) {
+    async function loadProfileStatus() {
+      const user = await getCurrentUser();
+      if (!user) {
         router.push("/login");
         return;
       }
 
-      setUserId(data.user.id);
+      setUserId(user.id);
       const { data: profile } = await supabase
         .from("profiles")
         .select("verification_status")
-        .eq("id", data.user.id)
+        .eq("id", user.id)
         .maybeSingle();
 
       const nextStatus = (profile?.verification_status || "not_submitted") as VerificationStatus;
@@ -69,7 +71,9 @@ export default function RequestLoanPage() {
       if (nextStatus === "not_submitted" || nextStatus === "rejected") {
         router.push("/verify-identity");
       }
-    });
+    }
+
+    loadProfileStatus();
   }, [router]);
 
   function canContinue() {

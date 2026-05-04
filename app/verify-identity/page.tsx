@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { CameraCaptureField } from "@/components/CameraCaptureField";
 import { useLanguage } from "@/components/LanguageProvider";
+import { getCurrentUser } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
 type VerificationStatus = "not_submitted" | "pending" | "verified" | "rejected";
@@ -28,21 +29,24 @@ export default function VerifyIdentityPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) {
+    async function loadVerificationStatus() {
+      const user = await getCurrentUser();
+      if (!user) {
         router.push("/login");
         return;
       }
 
-      setUserId(data.user.id);
+      setUserId(user.id);
       const { data: profile } = await supabase
         .from("profiles")
         .select("verification_status")
-        .eq("id", data.user.id)
+        .eq("id", user.id)
         .maybeSingle();
 
       setStatus((profile?.verification_status || "not_submitted") as VerificationStatus);
-    });
+    }
+
+    loadVerificationStatus();
   }, [router]);
 
   function statusLabel(nextStatus: VerificationStatus) {
