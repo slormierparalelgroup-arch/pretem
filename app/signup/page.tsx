@@ -19,6 +19,8 @@ export default function SignupPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const canSubmit = Boolean(fullName.trim() && country.trim() && phone.trim() && email.trim() && password.trim().length >= 6);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!isSupabaseConfigured) {
@@ -26,10 +28,15 @@ export default function SignupPage() {
       return;
     }
 
+    if (!canSubmit) {
+      setMessage(t("signupRequiredFields"));
+      return;
+    }
+
     setLoading(true);
     setMessage("");
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
         data: {
@@ -88,8 +95,9 @@ export default function SignupPage() {
             {t("supabaseMissing")}
           </p>
         ) : null}
+        {!canSubmit ? <p className="muted">{t("signupRequiredFields")}</p> : null}
         {message ? <p className="notice">{message}</p> : null}
-        <button disabled={loading}>{loading ? "..." : t("createAccount")}</button>
+        <button disabled={loading || !canSubmit}>{loading ? "..." : t("createAccount")}</button>
         <p className="muted">
           <Link href="/login">{t("login")}</Link>
         </p>
