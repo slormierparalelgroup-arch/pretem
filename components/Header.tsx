@@ -87,6 +87,9 @@ export function Header() {
               <Link href="/dashboard" onClick={() => setIsOpen(false)}>
                 {t("dashboard")}
               </Link>
+              <Link href="/profile" onClick={() => setIsOpen(false)}>
+                {t("profile")}
+              </Link>
               <Link href="/verify-identity" onClick={() => setIsOpen(false)}>
                 {t("verifyIdentity")}
               </Link>

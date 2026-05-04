@@ -537,6 +537,36 @@ button:disabled {
   margin: 0 0 10px;
 }
 
+.profile-summary {
+  display: grid;
+  gap: 16px;
+}
+
+.profile-summary dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.profile-summary dl div {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+}
+
+.profile-summary dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.profile-summary dd {
+  font-weight: 800;
+  margin: 0;
+}
+
 .muted {
   color: var(--muted);
 }

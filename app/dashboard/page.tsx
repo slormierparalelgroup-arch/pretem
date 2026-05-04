@@ -113,6 +113,9 @@ export default function DashboardPage() {
           <p className="muted">{t("loanHistoryBody")}</p>
         </div>
         <div className="actions">
+          <Link className="button secondary" href="/profile">
+            {t("profile")}
+          </Link>
           <Link className="button" href="/request-loan">
             {t("newRequest")}
           </Link>
