@@ -1,10 +1,12 @@
 "use client";
 
 import { Search } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { FormEvent, useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { getCurrentUser } from "@/lib/auth";
 import { formatMoney, Loan } from "@/lib/loans";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -14,6 +16,8 @@ function RequestStatusContent() {
   const searchParams = useSearchParams();
   const [reference, setReference] = useState(searchParams.get("reference") || "");
   const [loan, setLoan] = useState<Loan | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [repaymentTransferId, setRepaymentTransferId] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -42,9 +46,11 @@ function RequestStatusContent() {
     }
 
     setLoan(data);
+    setRepaymentTransferId(data.repayment_transfer_id || "");
   }
 
   useEffect(() => {
+    getCurrentUser().then((user) => setUserId(user?.id || null));
     const initialReference = searchParams.get("reference");
     if (initialReference) lookup(initialReference);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -57,6 +63,31 @@ function RequestStatusContent() {
 
   function statusLabel(status: Loan["status"]) {
     return t(`status${status.charAt(0).toUpperCase()}${status.slice(1)}`);
+  }
+
+  async function submitRepayment() {
+    if (!loan) return;
+    const transferId = repaymentTransferId.trim();
+    if (!transferId) {
+      setMessage(t("transferIdRequired"));
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+    const { error } = await supabase.rpc("submit_loan_repayment", {
+      loan_id: loan.id,
+      transfer_id: transferId
+    });
+    setLoading(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage(t("repaymentSubmitted"));
+    lookup(loan.reference);
   }
 
   return (
@@ -110,6 +141,48 @@ function RequestStatusContent() {
               </p>
               <p className="muted">{formatPayoutDetails(loan.payout_details, t)}</p>
             </div>
+          </div>
+          <div className="loan-status-actions">
+            {loan.disbursement_transfer_id ? (
+              <div className="loan-alert success">
+                <strong>{t("moneySentNotice")}</strong>
+                <span>
+                  {t("moneySentTransferId")}: {loan.disbursement_transfer_id}
+                </span>
+              </div>
+            ) : null}
+
+            {loan.status === "approved" ? (
+              <div className="loan-payment-box">
+                <strong>{t("payLoan")}</strong>
+                <span className="muted">
+                  {t("payLoanBody")}: {formatMoney(loan.repayment)}
+                </span>
+                {loan.repayment_transfer_id ? (
+                  <div className="loan-alert pending">
+                    <strong>{t("repaymentSubmittedNotice")}</strong>
+                    <span>{loan.repayment_transfer_id}</span>
+                  </div>
+                ) : null}
+                {userId === loan.user_id ? (
+                  <>
+                    <input
+                      className="compact-input"
+                      onChange={(event) => setRepaymentTransferId(event.target.value)}
+                      placeholder={t("repaymentTransferId")}
+                      value={repaymentTransferId}
+                    />
+                    <button className="compact success" disabled={loading} onClick={submitRepayment} type="button">
+                      {t("submitPaymentId")}
+                    </button>
+                  </>
+                ) : (
+                  <Link className="button compact" href="/login">
+                    {t("loginToPayLoan")}
+                  </Link>
+                )}
+              </div>
+            ) : null}
           </div>
         </article>
       ) : null}
