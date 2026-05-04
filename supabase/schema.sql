@@ -70,6 +70,8 @@ create table if not exists public.loans (
   disbursement_transfer_id text,
   disbursed_at timestamptz,
   repayment_submitted_amount numeric,
+  repayment_review_status text not null default 'not_submitted' check (repayment_review_status in ('not_submitted', 'pending', 'accepted', 'rejected')),
+  repayment_screenshot_url text,
   repayment_transfer_id text,
   repayment_submitted_at timestamptz,
   due_date timestamptz,
@@ -121,6 +123,12 @@ add column if not exists repayment_transfer_id text;
 
 alter table public.loans
 add column if not exists repayment_submitted_amount numeric;
+
+alter table public.loans
+add column if not exists repayment_review_status text not null default 'not_submitted' check (repayment_review_status in ('not_submitted', 'pending', 'accepted', 'rejected'));
+
+alter table public.loans
+add column if not exists repayment_screenshot_url text;
 
 alter table public.loans
 add column if not exists repayment_submitted_at timestamptz;
@@ -280,7 +288,8 @@ grant execute on function public.cancel_pending_loan(uuid) to authenticated;
 create or replace function public.submit_loan_repayment(
   loan_id uuid,
   payment_amount numeric,
-  transfer_id text
+  transfer_id text,
+  screenshot_path text default null
 )
 returns void
 language plpgsql
@@ -306,6 +315,8 @@ begin
   update public.loans
   set
     repayment_submitted_amount = payment_amount,
+    repayment_review_status = 'pending',
+    repayment_screenshot_url = coalesce(nullif(trim(screenshot_path), ''), repayment_screenshot_url),
     repayment_transfer_id = nullif(trim(transfer_id), ''),
     repayment_submitted_at = now()
   where id = loan_id
@@ -314,6 +325,8 @@ begin
 end;
 $$;
 
+revoke all on function public.submit_loan_repayment(uuid, numeric, text, text) from public;
+grant execute on function public.submit_loan_repayment(uuid, numeric, text, text) to authenticated;
 revoke all on function public.submit_loan_repayment(uuid, numeric, text) from public;
 grant execute on function public.submit_loan_repayment(uuid, numeric, text) to authenticated;
 

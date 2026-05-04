@@ -122,7 +122,7 @@ export default function AdminPage() {
   }, [profiles]);
 
   const pendingLoans = useMemo(() => loans.filter((loan) => loan.status === "pending"), [loans]);
-  const managedLoans = useMemo(() => loans.filter((loan) => loan.status === "approved" || loan.status === "paid"), [loans]);
+  const managedLoans = useMemo(() => loans.filter((loan) => loan.status === "approved"), [loans]);
   const userRows = useMemo(() => {
     const search = userSearch.trim().toLowerCase();
 
@@ -281,6 +281,19 @@ export default function AdminPage() {
       .from("loans")
       .update({ disbursement_transfer_id: transferId, disbursed_at: new Date().toISOString() })
       .eq("id", loan.id);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    await refreshAdminData();
+  }
+
+  async function reviewRepayment(loan: AdminLoan, accepted: boolean) {
+    setMessage("");
+    const patch = accepted
+      ? { status: "paid", paid_at: new Date().toISOString(), repayment_review_status: "accepted" }
+      : { repayment_review_status: "rejected" };
+    const { error } = await supabase.from("loans").update(patch).eq("id", loan.id);
     if (error) {
       setMessage(error.message);
       return;
@@ -598,6 +611,14 @@ export default function AdminPage() {
                         <span className="muted table-subtext">
                           {t("repaymentTransferId")}: {loan.repayment_transfer_id}
                         </span>
+                        {loan.repayment_screenshot_url ? (
+                          <button
+                            className="secondary compact"
+                            onClick={() => openImage(loan.repayment_screenshot_url || "", t("repaymentScreenshot"), `${loan.reference}-repayment.jpg`)}
+                          >
+                            {t("repaymentScreenshot")}
+                          </button>
+                        ) : null}
                       </>
                     ) : (
                       <span className="muted">{t("notProvided")}</span>
@@ -614,12 +635,17 @@ export default function AdminPage() {
                         <>
                           <TransferIdControl initialValue={loan.disbursement_transfer_id || ""} loan={loan} onMarkMoneySent={markMoneySent} t={t} />
                           {loan.repayment_transfer_id && Number(loan.repayment_submitted_amount || 0) === Number(loan.repayment) ? (
-                            <button className="compact success" onClick={() => updateStatus(loan.id, "paid")}>
+                            <button className="compact success" onClick={() => reviewRepayment(loan, true)}>
                               {t("acceptRepayment")}
                             </button>
                           ) : (
                             <span className="muted table-subtext">{t("waitForRepaymentProof")}</span>
                           )}
+                          {loan.repayment_transfer_id ? (
+                            <button className="danger compact" onClick={() => reviewRepayment(loan, false)}>
+                              {t("denyRepayment")}
+                            </button>
+                          ) : null}
                         </>
                       ) : null}
                       <button className="danger compact" onClick={() => updateStatus(loan.id, "rejected")}>

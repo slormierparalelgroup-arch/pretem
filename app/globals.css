@@ -833,6 +833,12 @@ input[readonly] {
   color: #9a4f06;
 }
 
+.loan-alert.rejected {
+  background: #fde7e5;
+  border-color: #f2aaa4;
+  color: var(--danger);
+}
+
 .loan-payment-box {
   background: #f8fbff;
 }

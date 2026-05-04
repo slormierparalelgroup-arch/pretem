@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const [status, setStatus] = useState<"all" | LoanStatus>("all");
   const [repaymentIds, setRepaymentIds] = useState<Record<string, string>>({});
   const [repaymentAmounts, setRepaymentAmounts] = useState<Record<string, string>>({});
+  const [repaymentScreenshots, setRepaymentScreenshots] = useState<Record<string, File | null>>({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -85,9 +86,22 @@ export default function DashboardPage() {
     }
 
     setMessage("");
+    let screenshotPath = loan.repayment_screenshot_url || null;
+    const screenshot = repaymentScreenshots[loan.id];
+    if (screenshot) {
+      const extension = screenshot.name.split(".").pop() || "jpg";
+      screenshotPath = `${loan.user_id}/repayments/${loan.id}.${extension}`;
+      const { error: uploadError } = await supabase.storage.from("selfies").upload(screenshotPath, screenshot, { upsert: true });
+      if (uploadError) {
+        setMessage(uploadError.message);
+        return;
+      }
+    }
+
     const { error } = await supabase.rpc("submit_loan_repayment", {
       loan_id: loan.id,
       payment_amount: paymentAmount,
+      screenshot_path: screenshotPath,
       transfer_id: transferId
     });
     if (error) {
@@ -234,7 +248,7 @@ export default function DashboardPage() {
                     {t("payLoanBody")}: {formatMoney(loan.repayment)}
                   </span>
                   {loan.repayment_transfer_id ? (
-                    <div className="loan-alert pending">
+                    <div className={`loan-alert ${loan.repayment_review_status === "rejected" ? "rejected" : "pending"}`}>
                       <strong>{t("repaymentSubmittedNotice")}</strong>
                       <span>
                         {t("repaymentAmount")}: {formatMoney(loan.repayment_submitted_amount || 0)}
@@ -242,6 +256,7 @@ export default function DashboardPage() {
                       <span>
                         {t("repaymentTransferId")}: {loan.repayment_transfer_id}
                       </span>
+                      {loan.repayment_review_status === "rejected" ? <span>{t("repaymentRejectedNotice")}</span> : null}
                     </div>
                   ) : null}
                   <input
@@ -265,6 +280,21 @@ export default function DashboardPage() {
                     <button className="compact success" onClick={() => submitRepayment(loan)}>
                       {t("submitPaymentId")}
                     </button>
+                  ) : null}
+                  {loan.repayment_review_status === "rejected" ? (
+                    <>
+                      <label>
+                        {t("repaymentScreenshot")}
+                        <input
+                          accept="image/*"
+                          onChange={(event) => setRepaymentScreenshots((values) => ({ ...values, [loan.id]: event.target.files?.[0] || null }))}
+                          type="file"
+                        />
+                      </label>
+                      <button className="compact success" onClick={() => submitRepayment(loan)}>
+                        {t("submitRepaymentScreenshot")}
+                      </button>
+                    </>
                   ) : null}
                 </div>
               ) : null}
