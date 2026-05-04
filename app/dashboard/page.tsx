@@ -29,6 +29,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<ProfileStatus | null>(null);
   const [status, setStatus] = useState<"all" | LoanStatus>("all");
   const [repaymentIds, setRepaymentIds] = useState<Record<string, string>>({});
+  const [repaymentAmounts, setRepaymentAmounts] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -73,14 +74,20 @@ export default function DashboardPage() {
 
   async function submitRepayment(loan: Loan) {
     const transferId = (repaymentIds[loan.id] || "").trim();
+    const paymentAmount = Number(repaymentAmounts[loan.id] || loan.repayment_submitted_amount || 0);
     if (!transferId) {
       setMessage(t("transferIdRequired"));
+      return;
+    }
+    if (Number(paymentAmount.toFixed(2)) !== Number(Number(loan.repayment).toFixed(2))) {
+      setMessage(t("repaymentAmountMismatch"));
       return;
     }
 
     setMessage("");
     const { error } = await supabase.rpc("submit_loan_repayment", {
       loan_id: loan.id,
+      payment_amount: paymentAmount,
       transfer_id: transferId
     });
     if (error) {
@@ -229,9 +236,23 @@ export default function DashboardPage() {
                   {loan.repayment_transfer_id ? (
                     <div className="loan-alert pending">
                       <strong>{t("repaymentSubmittedNotice")}</strong>
-                      <span>{loan.repayment_transfer_id}</span>
+                      <span>
+                        {t("repaymentAmount")}: {formatMoney(loan.repayment_submitted_amount || 0)}
+                      </span>
+                      <span>
+                        {t("repaymentTransferId")}: {loan.repayment_transfer_id}
+                      </span>
                     </div>
                   ) : null}
+                  <input
+                    className="compact-input"
+                    min="0"
+                    onChange={(event) => setRepaymentAmounts((values) => ({ ...values, [loan.id]: event.target.value }))}
+                    placeholder={t("repaymentAmount")}
+                    step="0.01"
+                    type="number"
+                    value={repaymentAmounts[loan.id] ?? loan.repayment_submitted_amount ?? ""}
+                  />
                   <input
                     className="compact-input"
                     onChange={(event) => setRepaymentIds((values) => ({ ...values, [loan.id]: event.target.value }))}

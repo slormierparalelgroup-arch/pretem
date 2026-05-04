@@ -592,7 +592,12 @@ export default function AdminPage() {
                     {loan.repayment_transfer_id ? (
                       <>
                         <span className="status pending">{t("submitted")}</span>
-                        <span className="muted table-subtext">{loan.repayment_transfer_id}</span>
+                        <span className="muted table-subtext">
+                          {t("repaymentAmount")}: {formatMoney(loan.repayment_submitted_amount || 0)}
+                        </span>
+                        <span className="muted table-subtext">
+                          {t("repaymentTransferId")}: {loan.repayment_transfer_id}
+                        </span>
                       </>
                     ) : (
                       <span className="muted">{t("notProvided")}</span>

@@ -45,6 +45,7 @@ export type Loan = {
   public_story_consent: boolean | null;
   disbursement_transfer_id: string | null;
   disbursed_at: string | null;
+  repayment_submitted_amount: number | null;
   repayment_transfer_id: string | null;
   repayment_submitted_at: string | null;
   due_date: string | null;

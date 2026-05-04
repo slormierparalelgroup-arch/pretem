@@ -17,6 +17,7 @@ function RequestStatusContent() {
   const [reference, setReference] = useState(searchParams.get("reference") || "");
   const [loan, setLoan] = useState<Loan | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [repaymentAmount, setRepaymentAmount] = useState("");
   const [repaymentTransferId, setRepaymentTransferId] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,6 +47,7 @@ function RequestStatusContent() {
     }
 
     setLoan(data);
+    setRepaymentAmount(data.repayment_submitted_amount ? String(data.repayment_submitted_amount) : "");
     setRepaymentTransferId(data.repayment_transfer_id || "");
   }
 
@@ -72,11 +74,17 @@ function RequestStatusContent() {
       setMessage(t("transferIdRequired"));
       return;
     }
+    const paymentAmount = Number(repaymentAmount);
+    if (Number(paymentAmount.toFixed(2)) !== Number(Number(loan.repayment).toFixed(2))) {
+      setMessage(t("repaymentAmountMismatch"));
+      return;
+    }
 
     setLoading(true);
     setMessage("");
     const { error } = await supabase.rpc("submit_loan_repayment", {
       loan_id: loan.id,
+      payment_amount: paymentAmount,
       transfer_id: transferId
     });
     setLoading(false);
@@ -161,11 +169,25 @@ function RequestStatusContent() {
                 {loan.repayment_transfer_id ? (
                   <div className="loan-alert pending">
                     <strong>{t("repaymentSubmittedNotice")}</strong>
-                    <span>{loan.repayment_transfer_id}</span>
+                    <span>
+                      {t("repaymentAmount")}: {formatMoney(loan.repayment_submitted_amount || 0)}
+                    </span>
+                    <span>
+                      {t("repaymentTransferId")}: {loan.repayment_transfer_id}
+                    </span>
                   </div>
                 ) : null}
                 {userId === loan.user_id ? (
                   <>
+                    <input
+                      className="compact-input"
+                      min="0"
+                      onChange={(event) => setRepaymentAmount(event.target.value)}
+                      placeholder={t("repaymentAmount")}
+                      step="0.01"
+                      type="number"
+                      value={repaymentAmount}
+                    />
                     <input
                       className="compact-input"
                       onChange={(event) => setRepaymentTransferId(event.target.value)}

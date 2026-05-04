@@ -65,6 +65,7 @@ create table if not exists public.loans (
   public_story_consent boolean not null default false,
   disbursement_transfer_id text,
   disbursed_at timestamptz,
+  repayment_submitted_amount numeric,
   repayment_transfer_id text,
   repayment_submitted_at timestamptz,
   due_date timestamptz,
@@ -113,6 +114,9 @@ add column if not exists disbursed_at timestamptz;
 
 alter table public.loans
 add column if not exists repayment_transfer_id text;
+
+alter table public.loans
+add column if not exists repayment_submitted_amount numeric;
 
 alter table public.loans
 add column if not exists repayment_submitted_at timestamptz;
@@ -239,6 +243,7 @@ grant execute on function public.cancel_pending_loan(uuid) to authenticated;
 
 create or replace function public.submit_loan_repayment(
   loan_id uuid,
+  payment_amount numeric,
   transfer_id text
 )
 returns void
@@ -247,8 +252,24 @@ security definer
 set search_path = public
 as $$
 begin
+  if payment_amount is null or payment_amount <= 0 then
+    raise exception 'Payment amount is required.';
+  end if;
+
+  if not exists (
+    select 1
+    from public.loans
+    where id = loan_id
+      and user_id = auth.uid()
+      and status = 'approved'
+      and repayment = payment_amount
+  ) then
+    raise exception 'Payment amount must match the total payback amount.';
+  end if;
+
   update public.loans
   set
+    repayment_submitted_amount = payment_amount,
     repayment_transfer_id = nullif(trim(transfer_id), ''),
     repayment_submitted_at = now()
   where id = loan_id
@@ -257,8 +278,8 @@ begin
 end;
 $$;
 
-revoke all on function public.submit_loan_repayment(uuid, text) from public;
-grant execute on function public.submit_loan_repayment(uuid, text) to authenticated;
+revoke all on function public.submit_loan_repayment(uuid, numeric, text) from public;
+grant execute on function public.submit_loan_repayment(uuid, numeric, text) to authenticated;
 
 drop policy if exists "Users can read their profile" on public.profiles;
 create policy "Users can read their profile"
