@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
-import { supabase } from "@/lib/supabase";
+import { PasswordField } from "@/components/PasswordField";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -15,13 +16,37 @@ export default function AdminLoginPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!isSupabaseConfigured) {
+      setMessage(t("supabaseMissing"));
+      return;
+    }
+
     setLoading(true);
     setMessage("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
     if (error) {
+      setLoading(false);
       setMessage(error.message);
+      return;
+    }
+
+    const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+      .split(",")
+      .map((adminEmail) => adminEmail.trim().toLowerCase())
+      .filter(Boolean);
+    const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+    setLoading(false);
+
+    if (profileError) {
+      setMessage(profileError.message);
+      return;
+    }
+
+    const isAdmin = profile?.role === "admin" || adminEmails.includes(data.user.email?.toLowerCase() || "");
+    if (!isAdmin) {
+      await supabase.auth.signOut();
+      setMessage(t("adminAccessDenied"));
       return;
     }
 
@@ -36,10 +61,8 @@ export default function AdminLoginPage() {
           {t("email")}
           <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
         </label>
-        <label>
-          {t("password")}
-          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
-        </label>
+        <PasswordField value={password} onChange={setPassword} />
+        {!isSupabaseConfigured ? <p className="notice">{t("supabaseMissing")}</p> : null}
         {message ? <p className="notice">{message}</p> : null}
         <button disabled={loading}>{loading ? "..." : t("login")}</button>
       </form>
