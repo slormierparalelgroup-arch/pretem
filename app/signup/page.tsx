@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { AuthShell } from "@/components/AuthShell";
 import { useLanguage } from "@/components/LanguageProvider";
 import { PasswordField } from "@/components/PasswordField";
+import { getCountryCode, normalizePhoneForCountry } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function SignupPage() {
@@ -35,6 +36,7 @@ export default function SignupPage() {
 
     setLoading(true);
     setMessage("");
+    const normalizedPhone = normalizePhoneForCountry(country, phone);
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
@@ -42,7 +44,7 @@ export default function SignupPage() {
         data: {
           full_name: fullName.trim(),
           country,
-          phone: phone.trim()
+          phone: normalizedPhone
         }
       }
     });
@@ -51,7 +53,7 @@ export default function SignupPage() {
       await supabase.rpc("save_profile_info", {
         profile_full_name: fullName.trim(),
         profile_country: country,
-        profile_phone: phone.trim()
+        profile_phone: normalizedPhone
       });
     }
 
@@ -76,13 +78,13 @@ export default function SignupPage() {
         <label>
           {t("signupCountry")}
           <select value={country} onChange={(event) => setCountry(event.target.value)}>
-            <option value="haiti">{t("countryHaiti")}</option>
-            <option value="usa">{t("countryUsa")}</option>
-            <option value="mexico">{t("countryMexico")}</option>
+            <option value="haiti">{t("countryHaiti")} ({getCountryCode("haiti")})</option>
+            <option value="usa">{t("countryUsa")} ({getCountryCode("usa")})</option>
+            <option value="mexico">{t("countryMexico")} ({getCountryCode("mexico")})</option>
           </select>
         </label>
         <label>
-          {t("phoneNumber")}
+          {t("phoneNumber")} ({getCountryCode(country)})
           <input value={phone} onChange={(event) => setPhone(event.target.value)} required />
         </label>
         <label>

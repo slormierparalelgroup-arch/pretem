@@ -25,6 +25,7 @@ export default function RequestLoanPage() {
   const [step, setStep] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("not_submitted");
+  const [hasActiveLoan, setHasActiveLoan] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
@@ -70,6 +71,13 @@ export default function RequestLoanPage() {
       const nextStatus = (profile?.verification_status || "not_submitted") as VerificationStatus;
       setVerificationStatus(nextStatus);
       const isProfileComplete = Boolean(profile?.full_name?.trim() && profile?.country?.trim() && profile?.phone?.trim());
+      const { data: activeLoan } = await supabase
+        .from("loans")
+        .select("id, reference")
+        .eq("user_id", user.id)
+        .in("status", ["pending", "approved"])
+        .limit(1)
+        .maybeSingle();
 
       if (!isProfileComplete) {
         router.push("/profile");
@@ -78,14 +86,22 @@ export default function RequestLoanPage() {
 
       if (nextStatus !== "verified") {
         router.push("/verify-identity");
+        return;
+      }
+
+      if (activeLoan) {
+        setHasActiveLoan(true);
+        setMessage(t("activeLoanExists"));
+      } else {
+        setHasActiveLoan(false);
       }
     }
 
     loadProfileStatus();
-  }, [router]);
+  }, [router, t]);
 
   function canContinue() {
-    if (step === 0) return fullName.trim() && phone.trim() && verificationStatus === "verified";
+    if (step === 0) return fullName.trim() && phone.trim() && verificationStatus === "verified" && !hasActiveLoan;
     if (step === 1) {
       if (numericAmount <= 0) return false;
       if (destinationCountry === "haiti") return haitiAccountName.trim() && mobileNumber.trim() && !validateHaitiPayoutPhone(payoutMethod, mobileNumber, t);
@@ -149,6 +165,14 @@ export default function RequestLoanPage() {
       dueDate.setDate(dueDate.getDate() + repaymentDays);
       const phoneError = destinationCountry === "haiti" ? validateHaitiPayoutPhone(payoutMethod, mobileNumber, t) : "";
       if (phoneError) throw new Error(phoneError);
+      const { data: activeLoan } = await supabase
+        .from("loans")
+        .select("id")
+        .eq("user_id", userId)
+        .in("status", ["pending", "approved"])
+        .limit(1)
+        .maybeSingle();
+      if (activeLoan) throw new Error(t("activeLoanExists"));
       if (!fullName.trim() || !phone.trim()) throw new Error(t("profileRequiredFields"));
       if (verificationStatus !== "verified") throw new Error(t("verifyBeforeLoan"));
       if (!termsAccepted || !creditReportingAcknowledged || !lawfulRecoveryAcknowledged) throw new Error(t("agreementRequired"));

@@ -6,6 +6,7 @@ create table if not exists public.profiles (
   full_name text,
   country text,
   phone text,
+  phone_normalized text,
   role text not null default 'user' check (role in ('user', 'admin')),
   credit_score integer not null default 500,
   verification_status text not null default 'not_submitted' check (verification_status in ('not_submitted', 'pending', 'verified', 'rejected')),
@@ -27,6 +28,9 @@ add column if not exists country text;
 
 alter table public.profiles
 add column if not exists phone text;
+
+alter table public.profiles
+add column if not exists phone_normalized text;
 
 alter table public.profiles
 add column if not exists id_photo_url text;
@@ -121,6 +125,19 @@ add column if not exists repayment_submitted_amount numeric;
 alter table public.loans
 add column if not exists repayment_submitted_at timestamptz;
 
+update public.profiles
+set phone_normalized = regexp_replace(coalesce(phone, ''), '\D', '', 'g')
+where phone_normalized is null
+  and phone is not null;
+
+create unique index if not exists profiles_phone_normalized_unique
+on public.profiles (phone_normalized)
+where phone_normalized is not null and phone_normalized <> '';
+
+create unique index if not exists loans_one_unpaid_per_user
+on public.loans (user_id)
+where status in ('pending', 'approved');
+
 alter table public.loans
 drop constraint if exists loans_status_check;
 
@@ -134,13 +151,14 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, full_name, country, phone)
+  insert into public.profiles (id, email, full_name, country, phone, phone_normalized)
   values (
     new.id,
     new.email,
     new.raw_user_meta_data ->> 'full_name',
     new.raw_user_meta_data ->> 'country',
-    new.raw_user_meta_data ->> 'phone'
+    new.raw_user_meta_data ->> 'phone',
+    regexp_replace(coalesce(new.raw_user_meta_data ->> 'phone', ''), '\D', '', 'g')
   )
   on conflict (id) do nothing;
   return new;
@@ -179,15 +197,33 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  normalized_phone text;
 begin
-  insert into public.profiles (id, email, full_name, country, phone)
-  values (auth.uid(), auth.jwt() ->> 'email', profile_full_name, profile_country, profile_phone)
+  normalized_phone := regexp_replace(coalesce(profile_phone, ''), '\D', '', 'g');
+
+  if normalized_phone = '' then
+    raise exception 'Phone number is required.';
+  end if;
+
+  if exists (
+    select 1
+    from public.profiles
+    where phone_normalized = normalized_phone
+      and id <> auth.uid()
+  ) then
+    raise exception 'This phone number is already used by another account.';
+  end if;
+
+  insert into public.profiles (id, email, full_name, country, phone, phone_normalized)
+  values (auth.uid(), auth.jwt() ->> 'email', profile_full_name, profile_country, profile_phone, normalized_phone)
   on conflict (id) do update
   set
     email = excluded.email,
     full_name = excluded.full_name,
     country = excluded.country,
-    phone = excluded.phone;
+    phone = excluded.phone,
+    phone_normalized = excluded.phone_normalized;
 end;
 $$;
 

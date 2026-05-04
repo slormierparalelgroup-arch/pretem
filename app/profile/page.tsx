@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getCurrentUser } from "@/lib/auth";
+import { getCountryCode, normalizePhoneForCountry } from "@/lib/phone";
 import { supabase } from "@/lib/supabase";
 
 type VerificationStatus = "not_submitted" | "pending" | "verified" | "rejected";
@@ -85,10 +86,11 @@ export default function ProfilePage() {
 
     setSaving(true);
     setMessage("");
+    const normalizedPhone = normalizePhoneForCountry(country, phone);
     const { error } = await supabase.rpc("save_profile_info", {
       profile_full_name: fullName.trim(),
       profile_country: country,
-      profile_phone: phone.trim()
+      profile_phone: normalizedPhone
     });
     setSaving(false);
 
@@ -143,13 +145,13 @@ export default function ProfilePage() {
             <label>
               {t("signupCountry")}
               <select value={country} onChange={(event) => setCountry(event.target.value)} required>
-                <option value="haiti">{t("countryHaiti")}</option>
-                <option value="usa">{t("countryUsa")}</option>
-                <option value="mexico">{t("countryMexico")}</option>
+                <option value="haiti">{t("countryHaiti")} ({getCountryCode("haiti")})</option>
+                <option value="usa">{t("countryUsa")} ({getCountryCode("usa")})</option>
+                <option value="mexico">{t("countryMexico")} ({getCountryCode("mexico")})</option>
               </select>
             </label>
             <label>
-              {t("phoneNumber")}
+              {t("phoneNumber")} ({getCountryCode(country)})
               <input value={phone} onChange={(event) => setPhone(event.target.value)} required />
             </label>
             {!canSave ? <p className="muted">{t("profileRequiredFields")}</p> : null}
