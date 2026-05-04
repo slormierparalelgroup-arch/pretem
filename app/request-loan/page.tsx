@@ -146,6 +146,39 @@ export default function RequestLoanPage() {
     return true;
   }
 
+  function isLoanInfoComplete() {
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) return false;
+    if (!repaymentDays || !selectedRepayment) return false;
+    if (!destinationCountry || !selectedCountry || !payoutMethod) return false;
+
+    if (destinationCountry === "haiti") {
+      return Boolean(
+        haitiAccountName.trim() &&
+          mobileNumber.trim() &&
+          !validateHaitiPayoutPhone(payoutMethod, mobileNumber, t)
+      );
+    }
+
+    if (destinationCountry === "usa") return Boolean(receiver.trim());
+    if (destinationCountry === "mexico") return Boolean(bankName.trim() && accountName.trim() && clabe.trim());
+    return false;
+  }
+
+  function isRequestComplete() {
+    return Boolean(
+      userId &&
+        fullName.trim() &&
+        phone.trim() &&
+        verificationStatus === "verified" &&
+        !hasActiveLoan &&
+        !cooldownUntil &&
+        isLoanInfoComplete() &&
+        termsAccepted &&
+        creditReportingAcknowledged &&
+        lawfulRecoveryAcknowledged
+    );
+  }
+
   function updateDestinationCountry(country: DestinationCountry) {
     const nextCountry = getCountryOption(country);
     setDestinationCountry(country);
@@ -200,6 +233,7 @@ export default function RequestLoanPage() {
       dueDate.setDate(dueDate.getDate() + repaymentDays);
       const phoneError = destinationCountry === "haiti" ? validateHaitiPayoutPhone(payoutMethod, mobileNumber, t) : "";
       if (phoneError) throw new Error(phoneError);
+      if (!isLoanInfoComplete()) throw new Error(t("incompleteLoanRequest"));
       const { data: activeLoan } = await supabase
         .from("loans")
         .select("id")
@@ -414,7 +448,7 @@ export default function RequestLoanPage() {
               {t("continue")}
             </button>
           ) : (
-            <button disabled={loading}>{loading ? t("submitting") : t("submitRequest")}</button>
+            <button disabled={loading || !isRequestComplete()}>{loading ? t("submitting") : t("submitRequest")}</button>
           )}
           <Link className="button secondary" href="/dashboard">
             {t("myLoans")}
