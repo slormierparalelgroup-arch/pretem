@@ -59,7 +59,11 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
 
   const verificationRequests = useMemo(() => {
-    return profiles.filter((profile) => profile.verification_status === "pending" || profile.verification_status === "rejected");
+    return profiles.filter(
+      (profile) =>
+        profile.verification_status !== "not_submitted" ||
+        Boolean(profile.id_photo_url || profile.selfie_url || profile.selfie_with_id_url)
+    );
   }, [profiles]);
 
   const pendingLoans = useMemo(() => loans.filter((loan) => loan.status === "pending"), [loans]);
@@ -260,6 +264,13 @@ export default function AdminPage() {
     if (nextSection === "loanRequests") return pendingLoans.length;
     if (nextSection === "loanManagement") return managedLoans.length;
     return userRows.length;
+  }
+
+  function emptySectionMessage() {
+    if (section === "verification") return t("noVerificationItems");
+    if (section === "loanRequests") return t("noLoanRequestItems");
+    if (section === "loanManagement") return t("noLoanManagementItems");
+    return t("noAdminItems");
   }
 
   async function openImage(path: string) {
@@ -631,7 +642,7 @@ export default function AdminPage() {
             {section === "loanRequests" && pendingLoans.length ? <LoansTable rows={pendingLoans} mode="request" /> : null}
             {section === "loanManagement" && managedLoans.length ? <LoansTable rows={managedLoans} mode="management" /> : null}
             {section === "users" ? <UsersDatabase /> : null}
-            {section !== "users" && sectionCount(section) === 0 ? <p className="notice">{t("noAdminItems")}</p> : null}
+            {section !== "users" && sectionCount(section) === 0 ? <p className="notice">{emptySectionMessage()}</p> : null}
           </div>
         </>
       ) : null}
