@@ -26,6 +26,7 @@ export default function RequestLoanPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("not_submitted");
   const [hasActiveLoan, setHasActiveLoan] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
@@ -50,6 +51,32 @@ export default function RequestLoanPage() {
   const repayment = useMemo(() => calculateRepayment(numericAmount || 0, repaymentDays), [numericAmount, repaymentDays]);
   const interest = useMemo(() => calculateInterest(numericAmount || 0, repaymentDays), [numericAmount, repaymentDays]);
   const steps = [t("basicInfo"), t("loanInfo"), t("submitRequest")];
+
+  async function findCooldownUntil(nextUserId: string) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 22);
+
+    const { data, error } = await supabase
+      .from("loans")
+      .select("created_at, rejected_at, repayment_submitted_at")
+      .eq("user_id", nextUserId)
+      .or(`status.eq.rejected,repayment_review_status.eq.rejected`)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (error) return null;
+
+    const recentBadLoan = (data || [])
+      .map((loan) => loan.rejected_at || loan.repayment_submitted_at || loan.created_at)
+      .filter(Boolean)
+      .map((date) => new Date(date))
+      .find((date) => date >= cutoff);
+
+    if (!recentBadLoan) return null;
+    const nextDate = new Date(recentBadLoan);
+    nextDate.setDate(nextDate.getDate() + 22);
+    return nextDate.toISOString();
+  }
 
   useEffect(() => {
     async function loadProfileStatus() {
@@ -78,6 +105,7 @@ export default function RequestLoanPage() {
         .in("status", ["pending", "approved"])
         .limit(1)
         .maybeSingle();
+      const nextCooldownUntil = await findCooldownUntil(user.id);
 
       if (!isProfileComplete) {
         router.push("/profile");
@@ -95,13 +123,20 @@ export default function RequestLoanPage() {
       } else {
         setHasActiveLoan(false);
       }
+
+      if (nextCooldownUntil) {
+        setCooldownUntil(nextCooldownUntil);
+        setMessage(t("badCreditCooldown").replace("{date}", new Date(nextCooldownUntil).toLocaleDateString()));
+      } else {
+        setCooldownUntil(null);
+      }
     }
 
     loadProfileStatus();
   }, [router, t]);
 
   function canContinue() {
-    if (step === 0) return fullName.trim() && phone.trim() && verificationStatus === "verified" && !hasActiveLoan;
+    if (step === 0) return fullName.trim() && phone.trim() && verificationStatus === "verified" && !hasActiveLoan && !cooldownUntil;
     if (step === 1) {
       if (numericAmount <= 0) return false;
       if (destinationCountry === "haiti") return haitiAccountName.trim() && mobileNumber.trim() && !validateHaitiPayoutPhone(payoutMethod, mobileNumber, t);
@@ -173,6 +208,8 @@ export default function RequestLoanPage() {
         .limit(1)
         .maybeSingle();
       if (activeLoan) throw new Error(t("activeLoanExists"));
+      const nextCooldownUntil = await findCooldownUntil(userId);
+      if (nextCooldownUntil) throw new Error(t("badCreditCooldown").replace("{date}", new Date(nextCooldownUntil).toLocaleDateString()));
       if (!fullName.trim() || !phone.trim()) throw new Error(t("profileRequiredFields"));
       if (verificationStatus !== "verified") throw new Error(t("verifyBeforeLoan"));
       if (!termsAccepted || !creditReportingAcknowledged || !lawfulRecoveryAcknowledged) throw new Error(t("agreementRequired"));

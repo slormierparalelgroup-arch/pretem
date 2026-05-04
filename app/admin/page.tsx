@@ -260,7 +260,12 @@ export default function AdminPage() {
 
   async function updateStatus(id: string, nextStatus: LoanStatus) {
     setMessage("");
-    const patch = nextStatus === "paid" ? { status: nextStatus, paid_at: new Date().toISOString() } : { status: nextStatus };
+    const patch =
+      nextStatus === "paid"
+        ? { status: nextStatus, paid_at: new Date().toISOString() }
+        : nextStatus === "rejected"
+          ? { status: nextStatus, rejected_at: new Date().toISOString() }
+          : { status: nextStatus };
     const { error } = await supabase.from("loans").update(patch).eq("id", id);
     if (error) {
       setMessage(error.message);

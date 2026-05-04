@@ -52,6 +52,7 @@ export type Loan = {
   repayment_submitted_at: string | null;
   due_date: string | null;
   paid_at: string | null;
+  rejected_at: string | null;
   created_at: string;
 };
 

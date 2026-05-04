@@ -76,6 +76,7 @@ create table if not exists public.loans (
   repayment_submitted_at timestamptz,
   due_date timestamptz,
   paid_at timestamptz,
+  rejected_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -133,6 +134,9 @@ add column if not exists repayment_screenshot_url text;
 alter table public.loans
 add column if not exists repayment_submitted_at timestamptz;
 
+alter table public.loans
+add column if not exists rejected_at timestamptz;
+
 update public.profiles
 set phone_normalized = regexp_replace(coalesce(phone, ''), '\D', '', 'g')
 where phone_normalized is null
@@ -145,6 +149,41 @@ where phone_normalized is not null and phone_normalized <> '';
 create unique index if not exists loans_one_unpaid_per_user
 on public.loans (user_id)
 where status in ('pending', 'approved');
+
+create or replace function public.prevent_blocked_loan_request()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if exists (
+    select 1
+    from public.loans
+    where user_id = new.user_id
+      and status in ('pending', 'approved')
+  ) then
+    raise exception 'You already have an unpaid loan. Close it before requesting another one.';
+  end if;
+
+  if exists (
+    select 1
+    from public.loans
+    where user_id = new.user_id
+      and (status = 'rejected' or repayment_review_status = 'rejected')
+      and coalesce(rejected_at, repayment_submitted_at, created_at) > now() - interval '22 days'
+  ) then
+    raise exception 'Because of bad payment history, you must wait 22 days before requesting another loan.';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists prevent_blocked_loan_request on public.loans;
+create trigger prevent_blocked_loan_request
+before insert on public.loans
+for each row execute procedure public.prevent_blocked_loan_request();
 
 alter table public.loans
 drop constraint if exists loans_status_check;
