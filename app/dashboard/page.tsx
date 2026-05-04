@@ -75,10 +75,10 @@ export default function DashboardPage() {
     }
 
     setMessage("");
-    const { error } = await supabase
-      .from("loans")
-      .update({ repayment_transfer_id: transferId, repayment_submitted_at: new Date().toISOString() })
-      .eq("id", loan.id);
+    const { error } = await supabase.rpc("submit_loan_repayment", {
+      loan_id: loan.id,
+      transfer_id: transferId
+    });
     if (error) {
       setMessage(error.message);
       return;
@@ -203,19 +203,36 @@ export default function DashboardPage() {
                   {t("downloadAgreement")}
                 </button>
               ) : null}
-              {loan.disbursement_transfer_id ? <span className="muted">{t("moneySent")}: {loan.disbursement_transfer_id}</span> : null}
+              {loan.disbursement_transfer_id ? (
+                <div className="loan-alert success">
+                  <strong>{t("moneySentNotice")}</strong>
+                  <span>
+                    {t("moneySentTransferId")}: {loan.disbursement_transfer_id}
+                  </span>
+                </div>
+              ) : null}
               {loan.status === "approved" ? (
-                <>
+                <div className="loan-payment-box">
+                  <strong>{t("payLoan")}</strong>
+                  <span className="muted">
+                    {t("payLoanBody")}: {formatMoney(loan.repayment)}
+                  </span>
+                  {loan.repayment_transfer_id ? (
+                    <div className="loan-alert pending">
+                      <strong>{t("repaymentSubmittedNotice")}</strong>
+                      <span>{loan.repayment_transfer_id}</span>
+                    </div>
+                  ) : null}
                   <input
                     className="compact-input"
                     onChange={(event) => setRepaymentIds((values) => ({ ...values, [loan.id]: event.target.value }))}
                     placeholder={t("repaymentTransferId")}
                     value={repaymentIds[loan.id] ?? loan.repayment_transfer_id ?? ""}
                   />
-                  <button className="secondary compact" onClick={() => submitRepayment(loan)}>
-                    {t("submitRepayment")}
+                  <button className="compact success" onClick={() => submitRepayment(loan)}>
+                    {t("submitPaymentId")}
                   </button>
-                </>
+                </div>
               ) : null}
             </div>
           </article>

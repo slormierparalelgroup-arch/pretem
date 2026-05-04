@@ -81,8 +81,8 @@ function TransferIdControl({
         placeholder={t("transferId")}
         value={value}
       />
-      <button className="compact" onClick={() => onMarkMoneySent(loan, value)}>
-        {t("markMoneySent")}
+      <button className={`compact ${loan.disbursed_at ? "success" : ""}`} onClick={() => onMarkMoneySent(loan, value)}>
+        {loan.disbursed_at ? t("moneySent") : t("markMoneySent")}
       </button>
     </>
   );

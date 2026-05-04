@@ -237,6 +237,29 @@ $$;
 revoke all on function public.cancel_pending_loan(uuid) from public;
 grant execute on function public.cancel_pending_loan(uuid) to authenticated;
 
+create or replace function public.submit_loan_repayment(
+  loan_id uuid,
+  transfer_id text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.loans
+  set
+    repayment_transfer_id = nullif(trim(transfer_id), ''),
+    repayment_submitted_at = now()
+  where id = loan_id
+    and user_id = auth.uid()
+    and status = 'approved';
+end;
+$$;
+
+revoke all on function public.submit_loan_repayment(uuid, text) from public;
+grant execute on function public.submit_loan_repayment(uuid, text) to authenticated;
+
 drop policy if exists "Users can read their profile" on public.profiles;
 create policy "Users can read their profile"
 on public.profiles for select
