@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
+import { getCurrentUser } from "@/lib/auth";
 import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -41,11 +42,22 @@ type AvailableVerificationImage = VerificationImage & {
   path: string;
 };
 
-const adminLoanColumns =
-  "id, user_id, full_name, phone, amount, repayment, destination_country, currency, payout_method, payout_details, repayment_days, interest_rate, reference, status, id_photo_url, selfie_url, selfie_with_id_url, terms_accepted, terms_accepted_at, agreement_version, credit_reporting_acknowledged, public_story_consent, disbursement_transfer_id, disbursed_at, repayment_transfer_id, repayment_submitted_at, due_date, paid_at, created_at";
+function withAdminTimeout<T>(promise: PromiseLike<T>, message: string) {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = window.setTimeout(() => reject(new Error(message)), 15000);
 
-const legacyAdminLoanColumns =
-  "id, user_id, full_name, phone, amount, repayment, destination_country, currency, payout_method, payout_details, repayment_days, interest_rate, reference, status, id_photo_url, selfie_url, selfie_with_id_url, due_date, paid_at, created_at";
+    promise.then(
+      (value) => {
+        window.clearTimeout(timeout);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timeout);
+        reject(error);
+      }
+    );
+  });
+}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -110,28 +122,40 @@ export default function AdminPage() {
 
   useEffect(() => {
     async function load() {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        router.push("/admin/login");
-        return;
-      }
+      setLoading(true);
+      setMessage("");
 
-      const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
-        .split(",")
-        .map((email) => email.trim().toLowerCase())
-        .filter(Boolean);
+      try {
+        const user = await withAdminTimeout(getCurrentUser(), t("adminLoadTimeout"));
+        if (!user) {
+          router.push("/admin/login");
+          return;
+        }
 
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", userData.user.id).maybeSingle();
-      const isAdmin = profile?.role === "admin" || adminEmails.includes(userData.user.email?.toLowerCase() || "");
+        const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+          .split(",")
+          .map((email) => email.trim().toLowerCase())
+          .filter(Boolean);
 
-      if (!isAdmin) {
-        setMessage(t("adminAccessDenied"));
+        const { data: profile, error: profileError } = await withAdminTimeout(
+          supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+          t("adminLoadTimeout")
+        );
+        if (profileError) throw profileError;
+
+        const isAdmin = profile?.role === "admin" || adminEmails.includes(user.email?.toLowerCase() || "");
+
+        if (!isAdmin) {
+          setMessage(t("adminAccessDenied"));
+          return;
+        }
+
+        await refreshAdminData();
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : t("adminLoadError"));
+      } finally {
         setLoading(false);
-        return;
       }
-
-      await refreshAdminData();
-      setLoading(false);
     }
 
     load();
@@ -139,34 +163,32 @@ export default function AdminPage() {
   }, [router]);
 
   async function refreshAdminData() {
-    let loanRows: unknown[] | null = null;
-    let loansError: { message: string } | null = null;
-    const loanResult = await supabase.from("loans").select(adminLoanColumns).order("created_at", { ascending: false });
-    loanRows = loanResult.data;
-    loansError = loanResult.error;
-
-    if (loansError?.message?.includes("terms_accepted")) {
-      const retry = await supabase.from("loans").select(legacyAdminLoanColumns).order("created_at", { ascending: false });
-      loanRows = retry.data;
-      loansError = retry.error;
-    }
+    const loanResult = await withAdminTimeout(
+      supabase.from("loans").select("*").order("created_at", { ascending: false }),
+      t("adminLoadTimeout")
+    );
+    const loanRows = loanResult.data;
+    const loansError = loanResult.error;
 
     if (loansError) {
       setMessage(loansError.message);
       return;
     }
 
-    const { data: profileRows, error: profilesError } = await supabase
-      .from("profiles")
-      .select("id, email, full_name, country, phone, credit_score, verification_status, id_photo_url, selfie_url, selfie_with_id_url, created_at")
-      .order("created_at", { ascending: false });
+    const { data: profileRows, error: profilesError } = await withAdminTimeout(
+      supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+      t("adminLoadTimeout")
+    );
 
     if (profilesError) {
       setMessage(profilesError.message);
       return;
     }
 
-    const nextProfiles = (profileRows || []) as ProfileVerification[];
+    const nextProfiles = (profileRows || []).map((profile) => ({
+      ...profile,
+      verification_status: profile.verification_status || "not_submitted"
+    })) as ProfileVerification[];
     const profileByUserId = new Map(nextProfiles.map((profile) => [profile.id, profile]));
     const loansWithVerification = (loanRows || []).map((loan) => {
       const nextLoan = loan as Loan;
