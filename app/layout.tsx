@@ -4,8 +4,21 @@ import { LanguageProvider } from "@/components/LanguageProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.pretemcredit.com"),
   title: "PRETEM",
-  description: "Micro-loans for the Haitian community"
+  description: "Micro-loans for the Haitian community",
+  icons: {
+    icon: [
+      { url: "/images/pretem-logo.jpeg", type: "image/jpeg" },
+      { url: "/images/pretem-logo-transparent.png", type: "image/png" }
+    ],
+    apple: [{ url: "/images/pretem-logo.jpeg", type: "image/jpeg" }]
+  },
+  openGraph: {
+    title: "PRETEM Credit",
+    description: "Micro-loans for the Haitian community",
+    images: ["/images/pretem-logo.jpeg"]
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

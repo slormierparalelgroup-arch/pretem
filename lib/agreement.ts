@@ -85,7 +85,7 @@ function agreementRows(rows: Array<[string, string]>) {
     .join("");
 }
 
-export function buildLoanAgreementHtml(loan: Loan, t: Translator) {
+export function buildLoanAgreementHtml(loan: Loan, t: Translator, logoUrl = "/images/pretem-logo-transparent.png") {
   const acceptedAt = formatDateTime(loan.terms_accepted_at, t("notProvided"));
   const dueDate = formatDate(loan.due_date, t("notProvided"));
   const status = t(`status${loan.status.charAt(0).toUpperCase()}${loan.status.slice(1)}`);
@@ -249,7 +249,7 @@ export function buildLoanAgreementHtml(loan: Loan, t: Translator) {
     <main class="sheet">
       <header>
         <div>
-          <img class="logo" alt="PRETEM Credit" src="/images/pretem-logo-transparent.png" />
+          <img class="logo" alt="PRETEM Credit" src="${escapeHtml(logoUrl)}" />
           <h1>Borrower Loan Agreement</h1>
           <strong>PRETEM Credit</strong>
         </div>
@@ -294,7 +294,8 @@ export function buildLoanAgreementHtml(loan: Loan, t: Translator) {
 }
 
 export function downloadLoanAgreement(loan: Loan, t: Translator) {
-  const html = buildLoanAgreementHtml(loan, t);
+  const logoUrl = `${window.location.origin}/images/pretem-logo-transparent.png`;
+  const html = buildLoanAgreementHtml(loan, t, logoUrl);
   const printWindow = window.open("", "_blank", "noopener,noreferrer");
 
   if (printWindow) {
