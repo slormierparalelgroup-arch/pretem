@@ -6,7 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
-import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
+import { getNextLimitProjection } from "@/lib/credit";
+import { formatDueCountdown, formatMoney, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
 import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
@@ -20,6 +21,7 @@ type ProfileStatus = {
   country: string | null;
   verification_status: VerificationStatus;
   verified_at: string | null;
+  credit_score: number | null;
 };
 
 export default function DashboardPage() {
@@ -33,6 +35,7 @@ export default function DashboardPage() {
   const [repaymentScreenshots, setRepaymentScreenshots] = useState<Record<string, File | null>>({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(() => new Date());
 
   const filteredLoans = useMemo(() => {
     if (status === "all") return loans;
@@ -41,6 +44,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadLoans();
+    const timer = window.setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -54,7 +59,7 @@ export default function DashboardPage() {
 
     const [{ data }, { data: profileData }] = await Promise.all([
       supabase.from("loans").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("profiles").select("email, full_name, phone, country, verification_status, verified_at").eq("id", user.id).maybeSingle()
+      supabase.from("profiles").select("email, full_name, phone, country, verification_status, verified_at, credit_score").eq("id", user.id).maybeSingle()
     ]);
 
     setLoans(data || []);
@@ -134,6 +139,9 @@ export default function DashboardPage() {
     return (profile?.full_name || "").trim().split(/\s+/)[0] || t("user");
   }
 
+  const creditScore = profile?.credit_score ?? 500;
+  const creditProjection = getNextLimitProjection(creditScore);
+
   return (
     <section className="page">
       <div className="toolbar">
@@ -196,6 +204,31 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
+      {profile ? (
+        <div className="credit-summary-grid">
+          <div className="credit-summary-card">
+            <span>{t("creditScore")}</span>
+            <strong>{creditScore}</strong>
+            <p>{t("creditScoreBody")}</p>
+          </div>
+          <div className="credit-summary-card">
+            <span>{t("currentCreditLimit")}</span>
+            <strong>{formatMoney(creditProjection.current)}</strong>
+            <p>{t("currentCreditLimitBody")}</p>
+          </div>
+          <div className="credit-summary-card">
+            <span>{t("onTimeNextLimit")}</span>
+            <strong>{formatMoney(creditProjection.onTimeLimit)}</strong>
+            <p>{t("scoreAfterOnTime").replace("{score}", String(creditProjection.onTimeScore))}</p>
+          </div>
+          <div className="credit-summary-card">
+            <span>{t("earlyNextLimit")}</span>
+            <strong>{formatMoney(creditProjection.earlyLimit)}</strong>
+            <p>{t("scoreAfterEarly").replace("{score}", String(creditProjection.earlyScore))}</p>
+          </div>
+        </div>
+      ) : null}
+
       {!loading && filteredLoans.length === 0 ? (
         <div className="panel">
           <h2>{t("noLoansFound")}</h2>
@@ -206,6 +239,12 @@ export default function DashboardPage() {
       <div className="loan-list">
         {filteredLoans.map((loan) => (
           <article className="card loan-row" key={loan.id}>
+            {(() => {
+              const dueDate = getLoanDueDate(loan);
+              const countdown = formatDueCountdown(loan, now);
+
+              return (
+                <>
             <div>
               <strong>{loan.reference}</strong>
               <p className="muted">
@@ -220,6 +259,14 @@ export default function DashboardPage() {
                 {loan.repayment_days ?? "?"} {t("dayUnit")} · {loan.interest_rate != null ? `${Math.round(loan.interest_rate * 100)}%` : t("rate")}
               </p>
               <p className="muted">{getPayoutMethodLabel(loan.payout_method, t)}</p>
+              <p className="muted">
+                {t("dueDate")}: {dueDate ? dueDate.toLocaleDateString() : t("dueDatePending")}
+              </p>
+              {loan.disbursed_at && dueDate ? (
+                <p className={`countdown-pill ${countdown.state}`}>
+                  {countdown.state === "late" ? t("pastDueBy") : t("countdown")}: {countdown.text}
+                </p>
+              ) : null}
             </div>
             <div className="stack-actions">
               <span className={`status ${loan.status}`}>{statusLabel(loan.status)}</span>
@@ -299,6 +346,9 @@ export default function DashboardPage() {
                 </div>
               ) : null}
             </div>
+                </>
+              );
+            })()}
           </article>
         ))}
       </div>

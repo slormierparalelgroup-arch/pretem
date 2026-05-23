@@ -6,7 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
-import { formatMoney, Loan, LoanStatus } from "@/lib/loans";
+import { getNextLimitProjection, getRepaymentOutcome, projectCreditScore } from "@/lib/credit";
+import { formatDueCountdown, formatMoney, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
@@ -113,6 +114,7 @@ export default function AdminPage() {
   const [userSearch, setUserSearch] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(() => new Date());
 
   const verificationRequests = useMemo(() => {
     return profiles.filter((profile) => {
@@ -136,6 +138,8 @@ export default function AdminPage() {
         const totalBorrowed = userLoans.reduce((sum, loan) => sum + Number(loan.amount || 0), 0);
         const totalRepayment = userLoans.reduce((sum, loan) => sum + Number(loan.repayment || 0), 0);
         const lastLoan = userLoans[0];
+        const creditScore = profile.credit_score ?? 500;
+        const creditProjection = getNextLimitProjection(creditScore);
 
         return {
           profile,
@@ -146,6 +150,7 @@ export default function AdminPage() {
           rejectedLoans,
           totalBorrowed,
           totalRepayment,
+          creditProjection,
           lastLoan
         };
       })
@@ -202,6 +207,8 @@ export default function AdminPage() {
     }
 
     load();
+    const timer = window.setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -282,9 +289,12 @@ export default function AdminPage() {
     }
 
     setMessage("");
+    const disbursedAt = new Date();
+    const dueDate = new Date(disbursedAt);
+    dueDate.setDate(dueDate.getDate() + (loan.repayment_days || 7));
     const { error } = await supabase
       .from("loans")
-      .update({ disbursement_transfer_id: transferId, disbursed_at: new Date().toISOString() })
+      .update({ disbursement_transfer_id: transferId, disbursed_at: disbursedAt.toISOString(), due_date: dueDate.toISOString() })
       .eq("id", loan.id);
     if (error) {
       setMessage(error.message);
@@ -303,6 +313,12 @@ export default function AdminPage() {
       setMessage(error.message);
       return;
     }
+
+    const outcome = accepted ? getRepaymentOutcome({ ...loan, status: "paid", repayment_review_status: "accepted", paid_at: new Date().toISOString() }) : "bad";
+    const profile = profiles.find((item) => item.id === loan.user_id);
+    const nextScore = projectCreditScore(profile?.credit_score ?? 500, outcome || "on_time");
+    await supabase.from("profiles").update({ credit_score: nextScore }).eq("id", loan.user_id);
+
     await refreshAdminData();
   }
 
@@ -561,6 +577,7 @@ export default function AdminPage() {
                 <th>{t("phoneNumber")}</th>
                 <th>{t("loanAmount")}</th>
                 <th>{t("repayment")}</th>
+                <th>{t("dueDate")}</th>
                 <th>{t("destinationFallback")}</th>
                 <th>{t("payoutMethod")}</th>
                 <th>{t("payoutInfo")}</th>
@@ -572,7 +589,11 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((loan) => (
+              {rows.map((loan) => {
+                const dueDate = getLoanDueDate(loan);
+                const countdown = formatDueCountdown(loan, now);
+
+                return (
                 <tr key={loan.id}>
                   <td>{loan.full_name}</td>
                   <td>{loan.reference}</td>
@@ -584,6 +605,14 @@ export default function AdminPage() {
                       {loan.repayment_days ?? "?"} {t("dayUnit")} ·{" "}
                       {loan.interest_rate != null ? `${Math.round(loan.interest_rate * 100)}%` : t("rate")}
                     </span>
+                  </td>
+                  <td>
+                    {dueDate ? dueDate.toLocaleDateString() : t("dueDatePending")}
+                    {loan.disbursed_at && dueDate ? (
+                      <span className={`countdown-pill table-countdown ${countdown.state}`}>
+                        {countdown.state === "late" ? t("pastDueBy") : t("countdown")}: {countdown.text}
+                      </span>
+                    ) : null}
                   </td>
                   <td>
                     {getDestinationLabel(loan.destination_country, t)} {loan.currency ? `(${loan.currency})` : ""}
@@ -665,7 +694,8 @@ export default function AdminPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -698,6 +728,8 @@ export default function AdminPage() {
                 <th>{t("verification")}</th>
                 <th>{t("documents")}</th>
                 <th>{t("creditScore")}</th>
+                <th>{t("currentCreditLimit")}</th>
+                <th>{t("nextLimit")}</th>
                 <th>{t("creditHistory")}</th>
                 <th>{t("loanSummary")}</th>
                 <th>{t("lastLoan")}</th>
@@ -717,6 +749,10 @@ export default function AdminPage() {
                     <DocumentButtons profile={row.profile} />
                   </td>
                   <td>{row.profile.credit_score ?? 500}</td>
+                  <td>{formatMoney(row.creditProjection.current)}</td>
+                  <td>
+                    {t("onTimeShort")}: {formatMoney(row.creditProjection.onTimeLimit)} · {t("earlyShort")}: {formatMoney(row.creditProjection.earlyLimit)}
+                  </td>
                   <td>
                     {t("paidShort")}: {row.paidLoans} · {t("approvedShort")}: {row.approvedLoans} · {t("pendingShort")}: {row.pendingUserLoans} ·{" "}
                     {t("rejectedShort")}: {row.rejectedLoans}

@@ -81,3 +81,31 @@ export function formatMoney(value: number) {
     currency: "USD"
   }).format(value);
 }
+
+export function getLoanDueDate(loan: Pick<Loan, "disbursed_at" | "due_date" | "repayment_days">) {
+  if (loan.disbursed_at && loan.repayment_days) {
+    const dueDate = new Date(loan.disbursed_at);
+    dueDate.setDate(dueDate.getDate() + loan.repayment_days);
+    return dueDate;
+  }
+
+  if (loan.due_date) return new Date(loan.due_date);
+  return null;
+}
+
+export function formatDueCountdown(loan: Pick<Loan, "disbursed_at" | "due_date" | "repayment_days" | "status">, now = new Date()) {
+  if (!loan.disbursed_at) return { state: "pending", text: "" };
+
+  const dueDate = getLoanDueDate(loan);
+  if (!dueDate) return { state: "pending", text: "" };
+
+  const diffMs = dueDate.getTime() - now.getTime();
+  const absMs = Math.abs(diffMs);
+  const days = Math.floor(absMs / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((absMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const text = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+
+  if (loan.status === "paid") return { state: "paid", text };
+  if (diffMs < 0) return { state: "late", text };
+  return { state: "active", text };
+}

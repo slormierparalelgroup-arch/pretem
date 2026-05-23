@@ -383,7 +383,7 @@ main {
 }
 
 .admin-work-table {
-  min-width: 1320px;
+  min-width: 1460px;
 }
 
 .table-actions {
@@ -870,6 +870,74 @@ button.compact {
   gap: 12px;
 }
 
+.credit-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 16px 0;
+}
+
+.credit-summary-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.credit-summary-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.credit-summary-card strong {
+  color: var(--accent);
+  font-size: 24px;
+}
+
+.credit-summary-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.credit-limit-notice {
+  display: grid;
+  gap: 6px;
+}
+
+.countdown-pill {
+  background: #e8f3ff;
+  border: 1px solid #b9dcff;
+  border-radius: 999px;
+  color: var(--accent);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  margin: 4px 0 0;
+  padding: 5px 9px;
+}
+
+.countdown-pill.late {
+  background: #fde7e5;
+  border-color: #f2aaa4;
+  color: var(--danger);
+}
+
+.countdown-pill.paid {
+  background: #ecfdf3;
+  border-color: #a7e3bd;
+  color: var(--ok);
+}
+
+.table-countdown {
+  display: flex;
+  width: max-content;
+}
+
 .loan-row {
   align-items: start;
   display: grid;
@@ -1040,6 +1108,7 @@ button.compact {
   .grid.two,
   .grid.three,
   .grid.four,
+  .credit-summary-grid,
   .loan-row {
     grid-template-columns: 1fr;
   }

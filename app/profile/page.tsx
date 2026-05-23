@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getCurrentUser } from "@/lib/auth";
+import { getNextLimitProjection } from "@/lib/credit";
+import { formatMoney } from "@/lib/loans";
 import { getCountryCode, normalizePhoneForCountry } from "@/lib/phone";
 import { supabase } from "@/lib/supabase";
 
@@ -114,6 +116,8 @@ export default function ProfilePage() {
     return t(`verification${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
   }
 
+  const creditProjection = getNextLimitProjection(profile?.credit_score ?? 500);
+
   return (
     <section className="page">
       <div className="toolbar">
@@ -178,6 +182,16 @@ export default function ProfilePage() {
               <div>
                 <dt>{t("creditScore")}</dt>
                 <dd>{profile.credit_score ?? 500}</dd>
+              </div>
+              <div>
+                <dt>{t("currentCreditLimit")}</dt>
+                <dd>{formatMoney(creditProjection.current)}</dd>
+              </div>
+              <div>
+                <dt>{t("nextLimit")}</dt>
+                <dd>
+                  {t("onTimeShort")}: {formatMoney(creditProjection.onTimeLimit)} · {t("earlyShort")}: {formatMoney(creditProjection.earlyLimit)}
+                </dd>
               </div>
               <div>
                 <dt>{t("accountCreated")}</dt>

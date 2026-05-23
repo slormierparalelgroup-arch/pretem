@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getAgreementVersion } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
+import { calculateCreditLimit, getNextLimitProjection } from "@/lib/credit";
 import { calculateInterest, calculateRepayment, generateReference, getRepaymentOption, repaymentOptions, RepaymentDays } from "@/lib/loans";
 import { DestinationCountry, getCountryOption, PayoutMethod, validateHaitiPayoutPhone } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -25,6 +26,7 @@ export default function RequestLoanPage() {
   const [step, setStep] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("not_submitted");
+  const [creditScore, setCreditScore] = useState(500);
   const [hasActiveLoan, setHasActiveLoan] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
@@ -48,6 +50,8 @@ export default function RequestLoanPage() {
   const numericAmount = Number(amount);
   const selectedCountry = getCountryOption(destinationCountry);
   const selectedRepayment = getRepaymentOption(repaymentDays);
+  const creditLimit = calculateCreditLimit(creditScore);
+  const creditProjection = getNextLimitProjection(creditScore);
   const repayment = useMemo(() => calculateRepayment(numericAmount || 0, repaymentDays), [numericAmount, repaymentDays]);
   const interest = useMemo(() => calculateInterest(numericAmount || 0, repaymentDays), [numericAmount, repaymentDays]);
   const steps = [t("basicInfo"), t("loanInfo"), t("submitRequest")];
@@ -89,12 +93,13 @@ export default function RequestLoanPage() {
       setUserId(user.id);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, country, phone, verification_status")
+        .select("full_name, country, phone, verification_status, credit_score")
         .eq("id", user.id)
         .maybeSingle();
 
       setFullName(profile?.full_name || "");
       setPhone(profile?.phone || "");
+      setCreditScore(profile?.credit_score ?? 500);
       const nextStatus = (profile?.verification_status || "not_submitted") as VerificationStatus;
       setVerificationStatus(nextStatus);
       const isProfileComplete = Boolean(profile?.full_name?.trim() && profile?.country?.trim() && profile?.phone?.trim());
@@ -139,6 +144,7 @@ export default function RequestLoanPage() {
     if (step === 0) return fullName.trim() && phone.trim() && verificationStatus === "verified" && !hasActiveLoan && !cooldownUntil;
     if (step === 1) {
       if (numericAmount <= 0) return false;
+      if (numericAmount > creditLimit) return false;
       if (destinationCountry === "haiti") return haitiAccountName.trim() && mobileNumber.trim() && !validateHaitiPayoutPhone(payoutMethod, mobileNumber, t);
       if (destinationCountry === "usa") return receiver.trim();
       return bankName.trim() && accountName.trim() && clabe.trim();
@@ -148,6 +154,7 @@ export default function RequestLoanPage() {
 
   function isLoanInfoComplete() {
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) return false;
+    if (numericAmount > creditLimit) return false;
     if (!repaymentDays || !selectedRepayment) return false;
     if (!destinationCountry || !selectedCountry || !payoutMethod) return false;
 
@@ -229,11 +236,10 @@ export default function RequestLoanPage() {
     try {
       const reference = generateReference();
 
-      const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + repaymentDays);
       const phoneError = destinationCountry === "haiti" ? validateHaitiPayoutPhone(payoutMethod, mobileNumber, t) : "";
       if (phoneError) throw new Error(phoneError);
       if (!isLoanInfoComplete()) throw new Error(t("incompleteLoanRequest"));
+      if (numericAmount > creditLimit) throw new Error(t("loanAmountAboveLimit").replace("{amount}", `$${creditLimit.toFixed(2)}`));
       const { data: activeLoan } = await supabase
         .from("loans")
         .select("id")
@@ -266,8 +272,7 @@ export default function RequestLoanPage() {
         terms_accepted_at: new Date().toISOString(),
         agreement_version: getAgreementVersion(),
         credit_reporting_acknowledged: true,
-        public_story_consent: false,
-        due_date: dueDate.toISOString()
+        public_story_consent: false
       });
 
       if (error) throw error;
@@ -322,6 +327,16 @@ export default function RequestLoanPage() {
                 required
               />
             </label>
+            <div className="notice credit-limit-notice">
+              <strong>{t("creditScore")}: {creditScore}</strong>
+              <span>
+                {t("currentCreditLimit")}: ${creditLimit.toFixed(2)}
+              </span>
+              <span>
+                {t("onTimeNextLimit")}: ${creditProjection.onTimeLimit.toFixed(2)} · {t("earlyNextLimit")}: ${creditProjection.earlyLimit.toFixed(2)}
+              </span>
+              {numericAmount > creditLimit ? <span>{t("loanAmountAboveLimit").replace("{amount}", `$${creditLimit.toFixed(2)}`)}</span> : null}
+            </div>
             <label>
               {t("repaymentPeriod")}
               <select value={repaymentDays} onChange={(event) => setRepaymentDays(Number(event.target.value) as RepaymentDays)}>
