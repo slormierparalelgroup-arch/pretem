@@ -170,10 +170,19 @@ begin
     select 1
     from public.loans
     where user_id = new.user_id
-      and (status = 'rejected' or repayment_review_status = 'rejected')
-      and coalesce(rejected_at, repayment_submitted_at, created_at) > now() - interval '22 days'
+      and (
+        status = 'rejected'
+        or repayment_review_status = 'rejected'
+        or (
+          status = 'paid'
+          and repayment_review_status = 'accepted'
+          and due_date is not null
+          and coalesce(repayment_submitted_at, paid_at) > due_date
+        )
+      )
+      and coalesce(rejected_at, repayment_submitted_at, created_at) > now() - interval '20 days'
   ) then
-    raise exception 'Because of bad payment history, you must wait 22 days before requesting another loan.';
+    raise exception 'Because of bad payment history, you must wait 20 days before requesting another loan.';
   end if;
 
   return new;

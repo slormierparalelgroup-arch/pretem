@@ -59,6 +59,7 @@ const dictionaries: Record<Language, Dictionary> = {
     currentCreditLimit: "Kantite ou ka mande kounye a",
     currentCreditLimitBody: "Sa se limit aktyèl la selon nòt kredi ou.",
     earlyNextLimit: "Pwochen limit si ou peye avan dat la",
+    earlyRule: "Lè ou peye anvan dat limit la, limit la monte 40%.",
     earlyShort: "Bonè",
     dashboard: "Tablo mwen",
     dashboardVerificationApproved: "Bon nouvèl: verifikasyon idantite ou aksepte. Ou ka kontinye mande prè.",
@@ -89,6 +90,7 @@ const dictionaries: Record<Language, Dictionary> = {
     openCamera: "Ouvri kamera",
     open: "Ouvri",
     onTimeNextLimit: "Pwochen limit si ou peye alè",
+    onTimeRule: "Apre {count} lòt prè peye alè, limit la monte 20%.",
     onTimeShort: "Alè",
     heroBody:
       "On platfòm kredi ki fet pou kominote ayisyen an prete lajan, verifye istwa kredi, epi swiv desizyon ak yon nimewo referans klè.",
@@ -304,6 +306,7 @@ const dictionaries: Record<Language, Dictionary> = {
     currentCreditLimit: "Amount you can request now",
     currentCreditLimitBody: "This is the current limit based on your credit score.",
     earlyNextLimit: "Next limit if you pay early",
+    earlyRule: "When you pay before the due date, the limit increases by 40%.",
     earlyShort: "Early",
     dashboard: "Dashboard",
     dashboardVerificationApproved: "Good news: your identity verification was accepted. You can continue to request a loan.",
@@ -334,6 +337,7 @@ const dictionaries: Record<Language, Dictionary> = {
     openCamera: "Open camera",
     open: "Open",
     onTimeNextLimit: "Next limit if you pay on time",
+    onTimeRule: "After {count} more on-time paid loans, the limit increases by 20%.",
     onTimeShort: "On time",
     heroBody:
       "A practical micro-loan platform built for the Haitian community to request funds, complete identity verification, and track decisions with a clear reference number.",
@@ -549,6 +553,7 @@ const dictionaries: Record<Language, Dictionary> = {
     currentCreditLimit: "Monto que puedes solicitar ahora",
     currentCreditLimitBody: "Este es el límite actual según tu puntaje de crédito.",
     earlyNextLimit: "Próximo límite si pagas temprano",
+    earlyRule: "Cuando pagas antes de la fecha límite, el límite sube 40%.",
     earlyShort: "Temprano",
     dashboard: "Panel",
     dashboardVerificationApproved: "Buenas noticias: tu verificación de identidad fue aceptada. Puedes continuar y solicitar un préstamo.",
@@ -579,6 +584,7 @@ const dictionaries: Record<Language, Dictionary> = {
     openCamera: "Abrir cámara",
     open: "Abrir",
     onTimeNextLimit: "Próximo límite si pagas a tiempo",
+    onTimeRule: "Después de {count} préstamos pagados a tiempo, el límite sube 20%.",
     onTimeShort: "A tiempo",
     heroBody:
       "Una plataforma práctica de micropréstamos para la comunidad haitiana que permite solicitar fondos, completar la verificación de identidad y seguir decisiones con un número de referencia claro.",

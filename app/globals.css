@@ -1021,6 +1021,19 @@ button.compact {
   border: 1px solid rgba(176, 0, 32, 0.18);
 }
 
+.active-loan-notice {
+  align-items: center;
+  border: 1px solid #b9dcff;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  margin: 16px 0;
+}
+
+.active-loan-notice p {
+  margin: 4px 0 0;
+}
+
 .agreement-box {
   background: #fffaf4;
   border: 1px solid rgba(245, 158, 66, 0.35);

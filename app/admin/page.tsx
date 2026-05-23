@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
-import { getNextLimitProjection, getRepaymentOutcome, projectCreditScore } from "@/lib/credit";
+import { calculateCreditProfile, calculateCreditScoreFromLoans, formatCreditMoney } from "@/lib/credit";
 import { formatDueCountdown, formatMoney, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -138,8 +138,7 @@ export default function AdminPage() {
         const totalBorrowed = userLoans.reduce((sum, loan) => sum + Number(loan.amount || 0), 0);
         const totalRepayment = userLoans.reduce((sum, loan) => sum + Number(loan.repayment || 0), 0);
         const lastLoan = userLoans[0];
-        const creditScore = profile.credit_score ?? 500;
-        const creditProjection = getNextLimitProjection(creditScore);
+        const creditProjection = calculateCreditProfile(userLoans, profile.country);
 
         return {
           profile,
@@ -314,9 +313,11 @@ export default function AdminPage() {
       return;
     }
 
-    const outcome = accepted ? getRepaymentOutcome({ ...loan, status: "paid", repayment_review_status: "accepted", paid_at: new Date().toISOString() }) : "bad";
-    const profile = profiles.find((item) => item.id === loan.user_id);
-    const nextScore = projectCreditScore(profile?.credit_score ?? 500, outcome || "on_time");
+    const nextLoan = accepted
+      ? ({ ...loan, status: "paid", repayment_review_status: "accepted", paid_at: new Date().toISOString() } as Loan)
+      : ({ ...loan, repayment_review_status: "rejected" } as Loan);
+    const userLoans = loans.filter((item) => item.user_id === loan.user_id && item.id !== loan.id).concat(nextLoan);
+    const nextScore = calculateCreditScoreFromLoans(userLoans);
     await supabase.from("profiles").update({ credit_score: nextScore }).eq("id", loan.user_id);
 
     await refreshAdminData();
@@ -749,9 +750,10 @@ export default function AdminPage() {
                     <DocumentButtons profile={row.profile} />
                   </td>
                   <td>{row.profile.credit_score ?? 500}</td>
-                  <td>{formatMoney(row.creditProjection.current)}</td>
+                  <td>{formatCreditMoney(row.creditProjection.currentLimit, row.profile.country)}</td>
                   <td>
-                    {t("onTimeShort")}: {formatMoney(row.creditProjection.onTimeLimit)} · {t("earlyShort")}: {formatMoney(row.creditProjection.earlyLimit)}
+                    {t("onTimeShort")}: {formatCreditMoney(row.creditProjection.onTimeLimit, row.profile.country)} · {t("earlyShort")}:{" "}
+                    {formatCreditMoney(row.creditProjection.earlyLimit, row.profile.country)}
                   </td>
                   <td>
                     {t("paidShort")}: {row.paidLoans} · {t("approvedShort")}: {row.approvedLoans} · {t("pendingShort")}: {row.pendingUserLoans} ·{" "}

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
-import { getNextLimitProjection } from "@/lib/credit";
+import { calculateCreditProfile, formatCreditMoney } from "@/lib/credit";
 import { formatDueCountdown, formatMoney, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
 import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -140,7 +140,10 @@ export default function DashboardPage() {
   }
 
   const creditScore = profile?.credit_score ?? 500;
-  const creditProjection = getNextLimitProjection(creditScore);
+  const creditProfile = calculateCreditProfile(loans, profile?.country || "haiti", now);
+  const activeLoan = loans.find((loan) => loan.status === "approved" || loan.status === "pending");
+  const activeLoanDueDate = activeLoan ? getLoanDueDate(activeLoan) : null;
+  const activeLoanCountdown = activeLoan ? formatDueCountdown(activeLoan, now) : null;
 
   return (
     <section className="page">
@@ -213,19 +216,42 @@ export default function DashboardPage() {
           </div>
           <div className="credit-summary-card">
             <span>{t("currentCreditLimit")}</span>
-            <strong>{formatMoney(creditProjection.current)}</strong>
+            <strong>{formatCreditMoney(creditProfile.currentLimit, profile.country)}</strong>
             <p>{t("currentCreditLimitBody")}</p>
           </div>
           <div className="credit-summary-card">
             <span>{t("onTimeNextLimit")}</span>
-            <strong>{formatMoney(creditProjection.onTimeLimit)}</strong>
-            <p>{t("scoreAfterOnTime").replace("{score}", String(creditProjection.onTimeScore))}</p>
+            <strong>{formatCreditMoney(creditProfile.onTimeLimit, profile.country)}</strong>
+            <p>{t("onTimeRule").replace("{count}", String(creditProfile.onTimeCreditsUntilIncrease || 3))}</p>
           </div>
           <div className="credit-summary-card">
             <span>{t("earlyNextLimit")}</span>
-            <strong>{formatMoney(creditProjection.earlyLimit)}</strong>
-            <p>{t("scoreAfterEarly").replace("{score}", String(creditProjection.earlyScore))}</p>
+            <strong>{formatCreditMoney(creditProfile.earlyLimit, profile.country)}</strong>
+            <p>{t("earlyRule")}</p>
           </div>
+        </div>
+      ) : null}
+
+      {activeLoan ? (
+        <div className={`notice active-loan-notice ${activeLoan.status}`}>
+          <div>
+            <strong>{t("activeLoanExists")}</strong>
+            <p>
+              {activeLoan.reference} · {formatMoney(activeLoan.amount)} · {statusLabel(activeLoan.status)}
+            </p>
+            <p>
+              {t("dueDate")}: {activeLoanDueDate ? activeLoanDueDate.toLocaleDateString() : t("dueDatePending")}
+              {activeLoanCountdown && activeLoan.disbursed_at ? (
+                <>
+                  {" "}
+                  · {activeLoanCountdown.state === "late" ? t("pastDueBy") : t("countdown")}: {activeLoanCountdown.text}
+                </>
+              ) : null}
+            </p>
+          </div>
+          <Link className="button compact" href={`/request-status?reference=${encodeURIComponent(activeLoan.reference)}`}>
+            {t("track")}
+          </Link>
         </div>
       ) : null}
 

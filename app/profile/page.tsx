@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getCurrentUser } from "@/lib/auth";
-import { getNextLimitProjection } from "@/lib/credit";
-import { formatMoney } from "@/lib/loans";
+import { calculateCreditProfile, formatCreditMoney } from "@/lib/credit";
+import { Loan } from "@/lib/loans";
 import { getCountryCode, normalizePhoneForCountry } from "@/lib/phone";
 import { supabase } from "@/lib/supabase";
 
@@ -26,6 +26,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { t } = useLanguage();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [fullName, setFullName] = useState("");
   const [country, setCountry] = useState("haiti");
   const [phone, setPhone] = useState("");
@@ -61,6 +62,9 @@ export default function ProfilePage() {
       setLoading(false);
       return;
     }
+
+    const { data: loanRows } = await supabase.from("loans").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    setLoans((loanRows || []) as Loan[]);
 
     const nextProfile = {
       email: data?.email || user.email || null,
@@ -116,7 +120,7 @@ export default function ProfilePage() {
     return t(`verification${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
   }
 
-  const creditProjection = getNextLimitProjection(profile?.credit_score ?? 500);
+  const creditProfile = calculateCreditProfile(loans, profile?.country || "haiti");
 
   return (
     <section className="page">
@@ -185,12 +189,13 @@ export default function ProfilePage() {
               </div>
               <div>
                 <dt>{t("currentCreditLimit")}</dt>
-                <dd>{formatMoney(creditProjection.current)}</dd>
+                <dd>{formatCreditMoney(creditProfile.currentLimit, profile.country)}</dd>
               </div>
               <div>
                 <dt>{t("nextLimit")}</dt>
                 <dd>
-                  {t("onTimeShort")}: {formatMoney(creditProjection.onTimeLimit)} · {t("earlyShort")}: {formatMoney(creditProjection.earlyLimit)}
+                  {t("onTimeShort")}: {formatCreditMoney(creditProfile.onTimeLimit, profile.country)} · {t("earlyShort")}:{" "}
+                  {formatCreditMoney(creditProfile.earlyLimit, profile.country)}
                 </dd>
               </div>
               <div>

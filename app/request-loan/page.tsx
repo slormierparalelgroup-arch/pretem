@@ -6,8 +6,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getAgreementVersion } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
-import { calculateCreditLimit, getNextLimitProjection } from "@/lib/credit";
-import { calculateInterest, calculateRepayment, generateReference, getRepaymentOption, repaymentOptions, RepaymentDays } from "@/lib/loans";
+import { calculateCreditProfile, formatCreditMoney } from "@/lib/credit";
+import { calculateInterest, calculateRepayment, generateReference, getRepaymentOption, repaymentOptions, RepaymentDays, Loan } from "@/lib/loans";
 import { DestinationCountry, getCountryOption, PayoutMethod, validateHaitiPayoutPhone } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
@@ -27,6 +27,7 @@ export default function RequestLoanPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("not_submitted");
   const [creditScore, setCreditScore] = useState(500);
+  const [loanHistory, setLoanHistory] = useState<Loan[]>([]);
   const [hasActiveLoan, setHasActiveLoan] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
@@ -50,36 +51,23 @@ export default function RequestLoanPage() {
   const numericAmount = Number(amount);
   const selectedCountry = getCountryOption(destinationCountry);
   const selectedRepayment = getRepaymentOption(repaymentDays);
-  const creditLimit = calculateCreditLimit(creditScore);
-  const creditProjection = getNextLimitProjection(creditScore);
+  const creditProfile = calculateCreditProfile(loanHistory, destinationCountry);
+  const creditLimit = creditProfile.currentLimit;
   const repayment = useMemo(() => calculateRepayment(numericAmount || 0, repaymentDays), [numericAmount, repaymentDays]);
   const interest = useMemo(() => calculateInterest(numericAmount || 0, repaymentDays), [numericAmount, repaymentDays]);
   const steps = [t("basicInfo"), t("loanInfo"), t("submitRequest")];
 
   async function findCooldownUntil(nextUserId: string) {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 22);
-
     const { data, error } = await supabase
       .from("loans")
-      .select("created_at, rejected_at, repayment_submitted_at")
+      .select("*")
       .eq("user_id", nextUserId)
-      .or(`status.eq.rejected,repayment_review_status.eq.rejected`)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(50);
 
     if (error) return null;
-
-    const recentBadLoan = (data || [])
-      .map((loan) => loan.rejected_at || loan.repayment_submitted_at || loan.created_at)
-      .filter(Boolean)
-      .map((date) => new Date(date))
-      .find((date) => date >= cutoff);
-
-    if (!recentBadLoan) return null;
-    const nextDate = new Date(recentBadLoan);
-    nextDate.setDate(nextDate.getDate() + 22);
-    return nextDate.toISOString();
+    const creditProfile = calculateCreditProfile((data || []) as Loan[], "haiti");
+    return creditProfile.isInPenalty ? creditProfile.penaltyUntil : null;
   }
 
   useEffect(() => {
@@ -110,6 +98,12 @@ export default function RequestLoanPage() {
         .in("status", ["pending", "approved"])
         .limit(1)
         .maybeSingle();
+      const { data: history } = await supabase
+        .from("loans")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setLoanHistory((history || []) as Loan[]);
       const nextCooldownUntil = await findCooldownUntil(user.id);
 
       if (!isProfileComplete) {
@@ -239,7 +233,7 @@ export default function RequestLoanPage() {
       const phoneError = destinationCountry === "haiti" ? validateHaitiPayoutPhone(payoutMethod, mobileNumber, t) : "";
       if (phoneError) throw new Error(phoneError);
       if (!isLoanInfoComplete()) throw new Error(t("incompleteLoanRequest"));
-      if (numericAmount > creditLimit) throw new Error(t("loanAmountAboveLimit").replace("{amount}", `$${creditLimit.toFixed(2)}`));
+      if (numericAmount > creditLimit) throw new Error(t("loanAmountAboveLimit").replace("{amount}", formatCreditMoney(creditLimit, destinationCountry)));
       const { data: activeLoan } = await supabase
         .from("loans")
         .select("id")
@@ -330,12 +324,16 @@ export default function RequestLoanPage() {
             <div className="notice credit-limit-notice">
               <strong>{t("creditScore")}: {creditScore}</strong>
               <span>
-                {t("currentCreditLimit")}: ${creditLimit.toFixed(2)}
+                {t("currentCreditLimit")}: {formatCreditMoney(creditLimit, destinationCountry)}
               </span>
               <span>
-                {t("onTimeNextLimit")}: ${creditProjection.onTimeLimit.toFixed(2)} · {t("earlyNextLimit")}: ${creditProjection.earlyLimit.toFixed(2)}
+                {t("onTimeNextLimit")}: {formatCreditMoney(creditProfile.onTimeLimit, destinationCountry)} · {t("earlyNextLimit")}:{" "}
+                {formatCreditMoney(creditProfile.earlyLimit, destinationCountry)}
               </span>
-              {numericAmount > creditLimit ? <span>{t("loanAmountAboveLimit").replace("{amount}", `$${creditLimit.toFixed(2)}`)}</span> : null}
+              {creditProfile.isInPenalty && creditProfile.penaltyUntil ? (
+                <span>{t("badCreditCooldown").replace("{date}", new Date(creditProfile.penaltyUntil).toLocaleDateString())}</span>
+              ) : null}
+              {numericAmount > creditLimit ? <span>{t("loanAmountAboveLimit").replace("{amount}", formatCreditMoney(creditLimit, destinationCountry))}</span> : null}
             </div>
             <label>
               {t("repaymentPeriod")}
@@ -407,8 +405,8 @@ export default function RequestLoanPage() {
               </>
             ) : null}
             <div className="notice">
-              {t("interest")}: ${interest.toFixed(2)} · {t("totalPayback")}: ${repayment.toFixed(2)} · {t("dueIn")}{" "}
-              {repaymentDays} {t("dayUnit")}
+              {t("interest")}: {formatCreditMoney(interest, destinationCountry)} · {t("totalPayback")}: {formatCreditMoney(repayment, destinationCountry)} ·{" "}
+              {t("dueIn")} {repaymentDays} {t("dayUnit")}
             </div>
           </>
         ) : null}
@@ -416,9 +414,9 @@ export default function RequestLoanPage() {
         {step === 2 ? (
           <>
             <div className="notice">
-              <strong>{fullName}</strong> · ${numericAmount.toFixed(2)} · {repaymentDays} {t("dayUnit")} ·{" "}
+              <strong>{fullName}</strong> · {formatCreditMoney(numericAmount, destinationCountry)} · {repaymentDays} {t("dayUnit")} ·{" "}
               {selectedRepayment.percentLabel} {t("interest").toLowerCase()} · {t(selectedCountry.labelKey)} ({selectedCountry.currency}) ·{" "}
-              {t("totalPayback")}: ${repayment.toFixed(2)}.
+              {t("totalPayback")}: {formatCreditMoney(repayment, destinationCountry)}.
             </div>
 
             <div className="agreement-box">
