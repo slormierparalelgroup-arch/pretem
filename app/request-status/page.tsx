@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import { FormEvent, useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getCurrentUser } from "@/lib/auth";
-import { formatMoney, Loan } from "@/lib/loans";
+import { formatDueCountdown, formatMoney, getLoanDueDate, Loan } from "@/lib/loans";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
@@ -22,6 +22,7 @@ function RequestStatusContent() {
   const [repaymentTransferId, setRepaymentTransferId] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [now, setNow] = useState(() => new Date());
 
   async function lookup(value = reference) {
     if (!value.trim()) return;
@@ -56,6 +57,8 @@ function RequestStatusContent() {
     getCurrentUser().then((user) => setUserId(user?.id || null));
     const initialReference = searchParams.get("reference");
     if (initialReference) lookup(initialReference);
+    const timer = window.setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -130,6 +133,13 @@ function RequestStatusContent() {
 
       {loan ? (
         <article className="panel" style={{ marginTop: 18 }}>
+          {(() => {
+            const dueDate = getLoanDueDate(loan);
+            const countdown = formatDueCountdown(loan, now);
+            const moneyWasSent = Boolean(loan.disbursed_at || loan.disbursement_transfer_id);
+
+            return (
+              <>
           <div className="toolbar">
             <div>
               <h2>{loan.reference}</h2>
@@ -147,7 +157,7 @@ function RequestStatusContent() {
               <p className="muted">{t("repayment")}</p>
             </div>
             <div>
-              <strong>{loan.due_date ? new Date(loan.due_date).toLocaleDateString() : t("pendingDue")}</strong>
+              <strong>{dueDate ? dueDate.toLocaleDateString() : t("dueDatePending")}</strong>
               <p className="muted">{t("dueDate")}</p>
             </div>
             <div>
@@ -165,12 +175,27 @@ function RequestStatusContent() {
             </div>
           </div>
           <div className="loan-status-actions">
-            {loan.disbursement_transfer_id ? (
-              <div className="loan-alert success">
-                <strong>{t("moneySentNotice")}</strong>
+            {loan.status === "approved" ? (
+              <div className={`loan-alert ${moneyWasSent ? "success" : "pending"} funding-alert`}>
+                <strong>{moneyWasSent ? t("moneySentNotice") : t("approvedWaitingFunds")}</strong>
+                {loan.disbursement_transfer_id ? (
+                  <span>
+                    {t("moneySentTransferId")}: {loan.disbursement_transfer_id}
+                  </span>
+                ) : null}
+                {loan.disbursed_at ? (
+                  <span>
+                    {t("moneySentAt")}: {new Date(loan.disbursed_at).toLocaleString()}
+                  </span>
+                ) : null}
                 <span>
-                  {t("moneySentTransferId")}: {loan.disbursement_transfer_id}
+                  {t("dueDate")}: {dueDate ? dueDate.toLocaleDateString() : t("dueDatePending")}
                 </span>
+                {moneyWasSent && dueDate ? (
+                  <span>
+                    {countdown.state === "late" ? t("pastDueBy") : t("countdown")}: {countdown.text}
+                  </span>
+                ) : null}
               </div>
             ) : null}
 
@@ -236,6 +261,9 @@ function RequestStatusContent() {
               </div>
             ) : null}
           </div>
+              </>
+            );
+          })()}
         </article>
       ) : null}
     </section>

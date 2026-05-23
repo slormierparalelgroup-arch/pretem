@@ -242,6 +242,7 @@ export default function DashboardPage() {
             {(() => {
               const dueDate = getLoanDueDate(loan);
               const countdown = formatDueCountdown(loan, now);
+              const moneyWasSent = Boolean(loan.disbursed_at || loan.disbursement_transfer_id);
 
               return (
                 <>
@@ -280,12 +281,27 @@ export default function DashboardPage() {
                   {t("downloadAgreement")}
                 </button>
               ) : null}
-              {loan.disbursement_transfer_id ? (
-                <div className="loan-alert success">
-                  <strong>{t("moneySentNotice")}</strong>
+              {loan.status === "approved" ? (
+                <div className={`loan-alert ${moneyWasSent ? "success" : "pending"} funding-alert`}>
+                  <strong>{moneyWasSent ? t("moneySentNotice") : t("approvedWaitingFunds")}</strong>
+                  {loan.disbursement_transfer_id ? (
+                    <span>
+                      {t("moneySentTransferId")}: {loan.disbursement_transfer_id}
+                    </span>
+                  ) : null}
+                  {loan.disbursed_at ? (
+                    <span>
+                      {t("moneySentAt")}: {new Date(loan.disbursed_at).toLocaleString()}
+                    </span>
+                  ) : null}
                   <span>
-                    {t("moneySentTransferId")}: {loan.disbursement_transfer_id}
+                    {t("dueDate")}: {dueDate ? dueDate.toLocaleDateString() : t("dueDatePending")}
                   </span>
+                  {moneyWasSent && dueDate ? (
+                    <span>
+                      {countdown.state === "late" ? t("pastDueBy") : t("countdown")}: {countdown.text}
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
               {loan.status === "approved" ? (

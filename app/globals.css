@@ -839,6 +839,11 @@ input[readonly] {
   color: var(--danger);
 }
 
+.funding-alert {
+  max-width: 320px;
+  width: 100%;
+}
+
 .loan-payment-box {
   background: #f8fbff;
 }
