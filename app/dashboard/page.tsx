@@ -232,12 +232,12 @@ export default function DashboardPage() {
           <div className="credit-summary-card">
             <span>{t("onTimeNextLimit")}</span>
             <strong>{formatCreditMoney(creditProfile.onTimeLimit, profile.country)}</strong>
-            <p>{t("onTimeRule").replace("{count}", String(creditProfile.onTimeCreditsUntilIncrease || 3))}</p>
+            <p>{t("nextCreditAmount").replace("{amount}", formatCreditMoney(creditProfile.onTimeLimit, profile.country))}</p>
           </div>
           <div className="credit-summary-card">
             <span>{t("earlyNextLimit")}</span>
             <strong>{formatCreditMoney(creditProfile.earlyLimit, profile.country)}</strong>
-            <p>{t("earlyRule")}</p>
+            <p>{t("nextCreditAmount").replace("{amount}", formatCreditMoney(creditProfile.earlyLimit, profile.country))}</p>
           </div>
         </div>
       ) : null}
