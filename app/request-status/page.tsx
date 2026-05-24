@@ -216,7 +216,7 @@ function RequestStatusContent() {
               </div>
             ) : null}
 
-            {loan.status === "approved" ? (
+            {loan.status === "approved" && moneyWasSent ? (
               <div className="loan-payment-box">
                 <strong>{t("payLoan")}</strong>
                 <span className="muted">
