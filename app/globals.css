@@ -938,6 +938,34 @@ button.compact {
   color: var(--ok);
 }
 
+.payment-result-pill {
+  border: 1px solid;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  margin: 4px 0 0;
+  padding: 5px 9px;
+}
+
+.payment-result-pill.early {
+  background: #ecfdf3;
+  border-color: #a7e3bd;
+  color: var(--ok);
+}
+
+.payment-result-pill.on-time {
+  background: #e8f3ff;
+  border-color: #b9dcff;
+  color: var(--accent);
+}
+
+.payment-result-pill.late {
+  background: #fde7e5;
+  border-color: #f2aaa4;
+  color: var(--danger);
+}
+
 .table-countdown {
   display: flex;
   width: max-content;

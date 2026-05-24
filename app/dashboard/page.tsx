@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
-import { calculateCreditProfile, formatCreditMoney } from "@/lib/credit";
+import { calculateCreditProfile, formatCreditMoney, getRepaymentOutcome } from "@/lib/credit";
 import { formatDueCountdown, formatMoney, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
 import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -139,6 +139,16 @@ export default function DashboardPage() {
     return (profile?.full_name || "").trim().split(/\s+/)[0] || t("user");
   }
 
+  function paymentResult(loan: Loan, countdown: ReturnType<typeof formatDueCountdown>) {
+    const outcome = getRepaymentOutcome(loan);
+    if (outcome === "early") return { className: "early", label: t("paidEarly") };
+    if (outcome === "on_time") return { className: "on-time", label: t("paidOnTime") };
+    if (outcome === "late") return { className: "late", label: t("paidLate") };
+    if (outcome === "bad" || loan.status === "rejected") return { className: "late", label: t("notPaid") };
+    if (loan.status === "approved" && countdown.state === "late") return { className: "late", label: t("notPaid") };
+    return null;
+  }
+
   const creditProfile = calculateCreditProfile(loans, profile?.country || "haiti", now);
   const creditScore = creditProfile.score;
   const activeLoan = loans.find((loan) => loan.status === "approved" || loan.status === "pending");
@@ -268,6 +278,7 @@ export default function DashboardPage() {
               const dueDate = getLoanDueDate(loan);
               const countdown = formatDueCountdown(loan, now);
               const moneyWasSent = Boolean(loan.disbursed_at || loan.disbursement_transfer_id);
+              const result = paymentResult(loan, countdown);
 
               return (
                 <>
@@ -288,7 +299,9 @@ export default function DashboardPage() {
               <p className="muted">
                 {t("dueDate")}: {dueDate ? dueDate.toLocaleDateString() : t("dueDatePending")}
               </p>
-              {loan.disbursed_at && dueDate ? (
+              {result ? (
+                <p className={`payment-result-pill ${result.className}`}>{result.label}</p>
+              ) : loan.disbursed_at && dueDate ? (
                 <p className={`countdown-pill ${countdown.state}`}>
                   {countdown.state === "late" ? t("pastDueBy") : t("countdown")}: {countdown.text}
                 </p>

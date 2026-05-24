@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { FormEvent, useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getCurrentUser } from "@/lib/auth";
+import { getRepaymentOutcome } from "@/lib/credit";
 import { formatDueCountdown, formatMoney, getLoanDueDate, Loan } from "@/lib/loans";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
@@ -69,6 +70,16 @@ function RequestStatusContent() {
 
   function statusLabel(status: Loan["status"]) {
     return t(`status${status.charAt(0).toUpperCase()}${status.slice(1)}`);
+  }
+
+  function paymentResult(nextLoan: Loan, countdown: ReturnType<typeof formatDueCountdown>) {
+    const outcome = getRepaymentOutcome(nextLoan);
+    if (outcome === "early") return { className: "early", label: t("paidEarly") };
+    if (outcome === "on_time") return { className: "on-time", label: t("paidOnTime") };
+    if (outcome === "late") return { className: "late", label: t("paidLate") };
+    if (outcome === "bad" || nextLoan.status === "rejected") return { className: "late", label: t("notPaid") };
+    if (nextLoan.status === "approved" && countdown.state === "late") return { className: "late", label: t("notPaid") };
+    return null;
   }
 
   async function submitRepayment() {
@@ -137,6 +148,7 @@ function RequestStatusContent() {
             const dueDate = getLoanDueDate(loan);
             const countdown = formatDueCountdown(loan, now);
             const moneyWasSent = Boolean(loan.disbursed_at || loan.disbursement_transfer_id);
+            const result = paymentResult(loan, countdown);
 
             return (
               <>
@@ -159,6 +171,7 @@ function RequestStatusContent() {
             <div>
               <strong>{dueDate ? dueDate.toLocaleDateString() : t("dueDatePending")}</strong>
               <p className="muted">{t("dueDate")}</p>
+              {result ? <p className={`payment-result-pill ${result.className}`}>{result.label}</p> : null}
             </div>
             <div>
               <strong>{loan.repayment_days ?? "?"} {t("dayUnit")}</strong>
