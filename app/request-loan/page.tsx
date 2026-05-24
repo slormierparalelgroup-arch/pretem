@@ -7,7 +7,18 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { getAgreementVersion } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
 import { calculateCreditProfile, formatCreditMoney } from "@/lib/credit";
-import { calculateInterest, calculateRepayment, generateReference, getRepaymentOption, repaymentOptions, RepaymentDays, Loan } from "@/lib/loans";
+import {
+  calculateInterest,
+  calculateRepayment,
+  countPriorSecurityLoans,
+  generateReference,
+  getAdjustedInterestRate,
+  getRepaymentOption,
+  getSecurityRateAdjustment,
+  repaymentOptions,
+  RepaymentDays,
+  Loan
+} from "@/lib/loans";
 import { DestinationCountry, getCountryOption, PayoutMethod, validateHaitiPayoutPhone } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
@@ -53,8 +64,11 @@ export default function RequestLoanPage() {
   const creditProfile = calculateCreditProfile(loanHistory, destinationCountry);
   const creditLimit = creditProfile.currentLimit;
   const creditScore = creditProfile.score;
-  const repayment = useMemo(() => calculateRepayment(numericAmount || 0, repaymentDays), [numericAmount, repaymentDays]);
-  const interest = useMemo(() => calculateInterest(numericAmount || 0, repaymentDays), [numericAmount, repaymentDays]);
+  const previousLoanCount = countPriorSecurityLoans(loanHistory);
+  const adjustedInterestRate = getAdjustedInterestRate(repaymentDays, previousLoanCount);
+  const securityRateAdjustment = getSecurityRateAdjustment(previousLoanCount);
+  const repayment = useMemo(() => calculateRepayment(numericAmount || 0, repaymentDays, previousLoanCount), [numericAmount, repaymentDays, previousLoanCount]);
+  const interest = useMemo(() => calculateInterest(numericAmount || 0, repaymentDays, previousLoanCount), [numericAmount, repaymentDays, previousLoanCount]);
   const steps = [t("basicInfo"), t("loanInfo"), t("submitRequest")];
 
   async function findCooldownUntil(nextUserId: string) {
@@ -258,7 +272,7 @@ export default function RequestLoanPage() {
         payout_method: payoutMethod,
         payout_details: buildPayoutDetails(),
         repayment_days: repaymentDays,
-        interest_rate: selectedRepayment.rate,
+        interest_rate: adjustedInterestRate,
         reference,
         status: "pending",
         terms_accepted: true,
@@ -339,11 +353,18 @@ export default function RequestLoanPage() {
               <select value={repaymentDays} onChange={(event) => setRepaymentDays(Number(event.target.value) as RepaymentDays)}>
                 {repaymentOptions.map((option) => (
                   <option key={option.days} value={option.days}>
-                    {option.days} {t("dayUnit")} · {option.percentLabel} {t("interest").toLowerCase()}
+                    {option.days} {t("dayUnit")} · {Math.round(getAdjustedInterestRate(option.days, previousLoanCount) * 100)}%{" "}
+                    {t("interest").toLowerCase()}
                   </option>
                 ))}
               </select>
             </label>
+            <div className="notice">
+              {t("securityInterestNotice")
+                .replace("{loanNumber}", String(previousLoanCount + 1))
+                .replace("{extra}", `${Math.round(securityRateAdjustment * 100)}%`)
+                .replace("{rate}", `${Math.round(adjustedInterestRate * 100)}%`)}
+            </div>
             <label>
               {t("destinationCountry")}
               <select value={destinationCountry} onChange={(event) => updateDestinationCountry(event.target.value as DestinationCountry)}>
@@ -414,7 +435,7 @@ export default function RequestLoanPage() {
           <>
             <div className="notice">
               <strong>{fullName}</strong> · {formatCreditMoney(numericAmount, destinationCountry)} · {repaymentDays} {t("dayUnit")} ·{" "}
-              {selectedRepayment.percentLabel} {t("interest").toLowerCase()} · {t(selectedCountry.labelKey)} ({selectedCountry.currency}) ·{" "}
+              {Math.round(adjustedInterestRate * 100)}% {t("interest").toLowerCase()} · {t(selectedCountry.labelKey)} ({selectedCountry.currency}) ·{" "}
               {t("totalPayback")}: {formatCreditMoney(repayment, destinationCountry)}.
             </div>
 

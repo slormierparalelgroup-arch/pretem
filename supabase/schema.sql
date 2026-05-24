@@ -69,7 +69,7 @@ create table if not exists public.loans (
   payout_method text,
   payout_details jsonb not null default '{}'::jsonb,
   repayment_days integer not null default 7 check (repayment_days in (7, 14, 21, 28)),
-  interest_rate numeric not null default 0.10 check (interest_rate in (0.10, 0.19, 0.28, 0.36)),
+  interest_rate numeric not null default 0.10,
   reference text not null unique,
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'paid', 'canceled')),
   id_photo_url text,
@@ -97,7 +97,10 @@ alter table public.loans
 add column if not exists repayment_days integer not null default 7 check (repayment_days in (7, 14, 21, 28));
 
 alter table public.loans
-add column if not exists interest_rate numeric not null default 0.10 check (interest_rate in (0.10, 0.19, 0.28, 0.36));
+add column if not exists interest_rate numeric not null default 0.10;
+
+alter table public.loans
+drop constraint if exists loans_interest_rate_check;
 
 alter table public.loans
 add column if not exists destination_country text;

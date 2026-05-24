@@ -60,13 +60,28 @@ export function getRepaymentOption(days: RepaymentDays) {
   return repaymentOptions.find((option) => option.days === days) ?? repaymentOptions[0];
 }
 
-export function calculateRepayment(amount: number, days: RepaymentDays) {
-  const option = getRepaymentOption(days);
-  return Number((amount * (1 + option.rate)).toFixed(2));
+export function getSecurityRateAdjustment(previousLoanCount: number) {
+  const nextLoanNumber = previousLoanCount + 1;
+  if (nextLoanNumber <= 6) return 0.15;
+  if (nextLoanNumber <= 20) return 0.1;
+  return 0;
 }
 
-export function calculateInterest(amount: number, days: RepaymentDays) {
-  return Number((calculateRepayment(amount, days) - amount).toFixed(2));
+export function getAdjustedInterestRate(days: RepaymentDays, previousLoanCount: number) {
+  const option = getRepaymentOption(days);
+  return Number((option.rate + getSecurityRateAdjustment(previousLoanCount)).toFixed(2));
+}
+
+export function calculateRepayment(amount: number, days: RepaymentDays, previousLoanCount = 0) {
+  return Number((amount * (1 + getAdjustedInterestRate(days, previousLoanCount))).toFixed(2));
+}
+
+export function calculateInterest(amount: number, days: RepaymentDays, previousLoanCount = 0) {
+  return Number((calculateRepayment(amount, days, previousLoanCount) - amount).toFixed(2));
+}
+
+export function countPriorSecurityLoans(loans: Loan[]) {
+  return loans.filter((loan) => loan.status !== "canceled").length;
 }
 
 export function generateReference() {
