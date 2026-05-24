@@ -669,7 +669,7 @@ export default function AdminPage() {
                       {mode === "management" && loan.status === "approved" ? (
                         <>
                           <TransferIdControl initialValue={loan.disbursement_transfer_id || ""} loan={loan} onMarkMoneySent={markMoneySent} t={t} />
-                          {loan.repayment_transfer_id && Number(loan.repayment_submitted_amount || 0) === Number(loan.repayment) ? (
+                          {loan.repayment_transfer_id && loan.repayment_review_status === "pending" ? (
                             <button className="compact success" onClick={() => reviewRepayment(loan, true)}>
                               {t("acceptRepayment")}
                             </button>
