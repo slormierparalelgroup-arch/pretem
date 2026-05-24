@@ -79,7 +79,7 @@ export default function DashboardPage() {
   }
 
   async function submitRepayment(loan: Loan) {
-    const transferId = (repaymentIds[loan.id] || "").trim();
+    const transferId = (repaymentIds[loan.id] || loan.repayment_transfer_id || "").trim();
     const paymentAmount = Number(repaymentAmounts[loan.id] || loan.repayment_submitted_amount || 0);
     if (!transferId) {
       setMessage(t("transferIdRequired"));
@@ -95,7 +95,7 @@ export default function DashboardPage() {
     const screenshot = repaymentScreenshots[loan.id];
     if (screenshot) {
       const extension = screenshot.name.split(".").pop() || "jpg";
-      screenshotPath = `${loan.user_id}/repayments/${loan.id}.${extension}`;
+      screenshotPath = `${loan.user_id}/repayments/${loan.id}-${Date.now()}.${extension}`;
       const { error: uploadError } = await supabase.storage.from("selfies").upload(screenshotPath, screenshot, { upsert: true });
       if (uploadError) {
         setMessage(uploadError.message);
@@ -382,7 +382,7 @@ export default function DashboardPage() {
                       {t("submitPaymentId")}
                     </button>
                   ) : null}
-                  {loan.repayment_review_status === "rejected" ? (
+                  {loan.repayment_review_status === "rejected" && !loan.repayment_screenshot_url ? (
                     <>
                       <label>
                         {t("repaymentScreenshot")}

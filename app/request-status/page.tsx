@@ -100,7 +100,7 @@ function RequestStatusContent() {
     let screenshotPath = loan.repayment_screenshot_url || null;
     if (repaymentScreenshot) {
       const extension = repaymentScreenshot.name.split(".").pop() || "jpg";
-      screenshotPath = `${loan.user_id}/repayments/${loan.id}.${extension}`;
+      screenshotPath = `${loan.user_id}/repayments/${loan.id}-${Date.now()}.${extension}`;
       const { error: uploadError } = await supabase.storage.from("selfies").upload(screenshotPath, repaymentScreenshot, { upsert: true });
       if (uploadError) {
         setLoading(false);
@@ -123,6 +123,8 @@ function RequestStatusContent() {
     }
 
     setMessage(t("repaymentSubmitted"));
+    setRepaymentScreenshot(null);
+    await lookup(loan.reference);
     lookup(loan.reference);
   }
 
@@ -254,7 +256,7 @@ function RequestStatusContent() {
                         {t("submitPaymentId")}
                       </button>
                     ) : null}
-                    {loan.repayment_review_status === "rejected" ? (
+                    {loan.repayment_review_status === "rejected" && !loan.repayment_screenshot_url ? (
                       <>
                         <label>
                           {t("repaymentScreenshot")}
