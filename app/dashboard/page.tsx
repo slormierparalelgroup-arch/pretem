@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => new Date());
+  const [openCreditDetail, setOpenCreditDetail] = useState<string | null>(null);
 
   const filteredLoans = useMemo(() => {
     if (status === "all") return loans;
@@ -145,6 +146,18 @@ export default function DashboardPage() {
   const activeLoan = loans.find((loan) => loan.status === "approved" || loan.status === "pending");
   const activeLoanDueDate = activeLoan ? getLoanDueDate(activeLoan) : null;
   const activeLoanCountdown = activeLoan ? formatDueCountdown(activeLoan, now) : null;
+  const creditDetails: Record<string, string> = profile
+    ? {
+        score: String(creditScore),
+        line: t("nextCreditAmount").replace("{amount}", formatCreditMoney(creditProfile.currentLimit, profile.country)),
+        onTime: t("nextCreditAmount").replace("{amount}", formatCreditMoney(creditProfile.onTimeLimit, profile.country)),
+        early: t("afterThreeEarlyPaymentsAmount").replace("{amount}", formatCreditMoney(creditProfile.earlyLimit, profile.country))
+      }
+    : {};
+
+  function toggleCreditDetail(key: string) {
+    setOpenCreditDetail((current) => (current === key ? null : key));
+  }
 
   return (
     <section className="page">
@@ -172,25 +185,26 @@ export default function DashboardPage() {
 
       {profile ? (
         <div className="credit-summary-grid dashboard-credit-grid">
-          <div className="credit-summary-card">
+          <button className="credit-summary-card" onClick={() => toggleCreditDetail("score")} type="button">
             <span>{t("creditScore")}</span>
             <strong>{creditScore}</strong>
-          </div>
-          <div className="credit-summary-card">
+            {openCreditDetail === "score" ? <p>{creditDetails.score}</p> : null}
+          </button>
+          <button className="credit-summary-card" onClick={() => toggleCreditDetail("line")} type="button">
             <span>{t("currentCreditLimit")}</span>
             <strong>{formatCreditMoney(creditProfile.currentLimit, profile.country)}</strong>
-            <p>{t("currentCreditLimitBody")}</p>
-          </div>
-          <div className="credit-summary-card">
+            {openCreditDetail === "line" ? <p>{creditDetails.line}</p> : null}
+          </button>
+          <button className="credit-summary-card" onClick={() => toggleCreditDetail("onTime")} type="button">
             <span>{t("onTimeNextLimit")}</span>
             <strong>{formatCreditMoney(creditProfile.onTimeLimit, profile.country)}</strong>
-            <p>{t("nextCreditAmount").replace("{amount}", formatCreditMoney(creditProfile.onTimeLimit, profile.country))}</p>
-          </div>
-          <div className="credit-summary-card">
+            {openCreditDetail === "onTime" ? <p>{creditDetails.onTime}</p> : null}
+          </button>
+          <button className="credit-summary-card" onClick={() => toggleCreditDetail("early")} type="button">
             <span>{t("earlyNextLimit")}</span>
             <strong>{formatCreditMoney(creditProfile.earlyLimit, profile.country)}</strong>
-            <p>{t("afterThreeEarlyPaymentsAmount").replace("{amount}", formatCreditMoney(creditProfile.earlyLimit, profile.country))}</p>
-          </div>
+            {openCreditDetail === "early" ? <p>{creditDetails.early}</p> : null}
+          </button>
         </div>
       ) : null}
 

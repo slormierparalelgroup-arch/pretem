@@ -886,9 +886,13 @@ button.compact {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
   display: grid;
   gap: 6px;
+  min-height: 96px;
   padding: 14px;
+  text-align: left;
 }
 
 .credit-summary-card span {
