@@ -7,7 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
 import { calculateCreditProfile, formatCreditMoney, getRepaymentOutcome } from "@/lib/credit";
-import { formatDueCountdown, formatMoney, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
+import { formatDueCountdown, formatMoney, getFlexibleRepaymentTerms, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
 import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
@@ -80,12 +80,13 @@ export default function DashboardPage() {
 
   async function submitRepayment(loan: Loan) {
     const transferId = (repaymentIds[loan.id] || loan.repayment_transfer_id || "").trim();
+    const flexibleTerms = getFlexibleRepaymentTerms(loan, now);
     const paymentAmount = Number(repaymentAmounts[loan.id] || loan.repayment_submitted_amount || 0);
     if (!transferId) {
       setMessage(t("transferIdRequired"));
       return;
     }
-    if (Number(paymentAmount.toFixed(2)) !== Number(Number(loan.repayment).toFixed(2))) {
+    if (Number(paymentAmount.toFixed(2)) !== Number(Number(flexibleTerms.repayment).toFixed(2))) {
       setMessage(t("repaymentAmountMismatch"));
       return;
     }
@@ -277,6 +278,7 @@ export default function DashboardPage() {
             {(() => {
               const dueDate = getLoanDueDate(loan);
               const countdown = formatDueCountdown(loan, now);
+              const flexibleTerms = getFlexibleRepaymentTerms(loan, now);
               const moneyWasSent = Boolean(loan.disbursed_at || loan.disbursement_transfer_id);
               const result = paymentResult(loan, countdown);
 
@@ -346,7 +348,12 @@ export default function DashboardPage() {
                 <div className="loan-payment-box">
                   <strong>{t("payLoan")}</strong>
                   <span className="muted">
-                    {t("payLoanBody")}: {formatMoney(loan.repayment)}
+                    {t("payLoanBody")}: {formatMoney(flexibleTerms.repayment)}
+                  </span>
+                  <span className="muted">
+                    {t("flexibleRepaymentNotice")
+                      .replace("{days}", String(flexibleTerms.days))
+                      .replace("{rate}", `${Math.round(flexibleTerms.rate * 100)}%`)}
                   </span>
                   {loan.repayment_transfer_id ? (
                     <div className={`loan-alert ${loan.repayment_review_status === "rejected" ? "rejected" : "pending"}`}>

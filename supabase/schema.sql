@@ -360,20 +360,63 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  loan_record public.loans%rowtype;
+  chosen_base_rate numeric;
+  security_adjustment numeric;
+  elapsed_days integer;
+  effective_days integer;
+  effective_base_rate numeric;
+  required_payment numeric;
 begin
   if payment_amount is null or payment_amount <= 0 then
     raise exception 'Payment amount is required.';
   end if;
 
-  if not exists (
-    select 1
-    from public.loans
-    where id = loan_id
-      and user_id = auth.uid()
-      and status = 'approved'
-      and repayment = payment_amount
-  ) then
-    raise exception 'Payment amount must match the total payback amount.';
+  select *
+  into loan_record
+  from public.loans
+  where id = loan_id
+    and user_id = auth.uid()
+    and status = 'approved';
+
+  if not found then
+    raise exception 'Loan not found.';
+  end if;
+
+  chosen_base_rate := case loan_record.repayment_days
+    when 7 then 0.10
+    when 14 then 0.19
+    when 21 then 0.28
+    else 0.36
+  end;
+  security_adjustment := greatest(coalesce(loan_record.interest_rate, chosen_base_rate) - chosen_base_rate, 0);
+
+  if loan_record.disbursed_at is null then
+    effective_days := loan_record.repayment_days;
+  else
+    elapsed_days := greatest(1, ceiling(extract(epoch from (now() - loan_record.disbursed_at)) / 86400.0)::integer);
+    effective_days := least(
+      loan_record.repayment_days,
+      case
+        when elapsed_days <= 7 then 7
+        when elapsed_days <= 14 then 14
+        when elapsed_days <= 21 then 21
+        else 28
+      end
+    );
+  end if;
+
+  effective_base_rate := case effective_days
+    when 7 then 0.10
+    when 14 then 0.19
+    when 21 then 0.28
+    else 0.36
+  end;
+  required_payment := round(loan_record.amount * (1 + effective_base_rate + security_adjustment), 2);
+
+  if payment_amount <> required_payment then
+    raise exception 'Payment amount must match the flexible payback amount: %.', required_payment;
   end if;
 
   update public.loans

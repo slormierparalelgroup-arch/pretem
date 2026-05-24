@@ -72,6 +72,24 @@ export function getAdjustedInterestRate(days: RepaymentDays, previousLoanCount: 
   return Number((option.rate + getSecurityRateAdjustment(previousLoanCount)).toFixed(2));
 }
 
+export function getFlexibleRepaymentTerms(loan: Pick<Loan, "amount" | "disbursed_at" | "interest_rate" | "repayment" | "repayment_days">, now = new Date()) {
+  const chosenDays = (loan.repayment_days || 7) as RepaymentDays;
+  const chosenOption = getRepaymentOption(chosenDays);
+  const securityAdjustment = Math.max(0, Number(loan.interest_rate || chosenOption.rate) - chosenOption.rate);
+  const elapsedDays = loan.disbursed_at
+    ? Math.max(1, Math.ceil((now.getTime() - new Date(loan.disbursed_at).getTime()) / (24 * 60 * 60 * 1000)))
+    : chosenDays;
+  const actualDays = Math.min(chosenDays, elapsedDays <= 7 ? 7 : elapsedDays <= 14 ? 14 : elapsedDays <= 21 ? 21 : 28) as RepaymentDays;
+  const actualRate = Number((getRepaymentOption(actualDays).rate + securityAdjustment).toFixed(2));
+  const repayment = Number((Number(loan.amount || 0) * (1 + actualRate)).toFixed(2));
+
+  return {
+    days: actualDays,
+    rate: actualRate,
+    repayment: loan.disbursed_at ? repayment : Number(loan.repayment || repayment)
+  };
+}
+
 export function calculateRepayment(amount: number, days: RepaymentDays, previousLoanCount = 0) {
   return Number((amount * (1 + getAdjustedInterestRate(days, previousLoanCount))).toFixed(2));
 }

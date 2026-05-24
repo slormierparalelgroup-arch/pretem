@@ -8,7 +8,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getCurrentUser } from "@/lib/auth";
 import { getRepaymentOutcome } from "@/lib/credit";
-import { formatDueCountdown, formatMoney, getLoanDueDate, Loan } from "@/lib/loans";
+import { formatDueCountdown, formatMoney, getFlexibleRepaymentTerms, getLoanDueDate, Loan } from "@/lib/loans";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
@@ -90,7 +90,8 @@ function RequestStatusContent() {
       return;
     }
     const paymentAmount = Number(repaymentAmount);
-    if (Number(paymentAmount.toFixed(2)) !== Number(Number(loan.repayment).toFixed(2))) {
+    const flexibleTerms = getFlexibleRepaymentTerms(loan, now);
+    if (Number(paymentAmount.toFixed(2)) !== Number(Number(flexibleTerms.repayment).toFixed(2))) {
       setMessage(t("repaymentAmountMismatch"));
       return;
     }
@@ -149,6 +150,7 @@ function RequestStatusContent() {
           {(() => {
             const dueDate = getLoanDueDate(loan);
             const countdown = formatDueCountdown(loan, now);
+            const flexibleTerms = getFlexibleRepaymentTerms(loan, now);
             const moneyWasSent = Boolean(loan.disbursed_at || loan.disbursement_transfer_id);
             const result = paymentResult(loan, countdown);
 
@@ -218,7 +220,12 @@ function RequestStatusContent() {
               <div className="loan-payment-box">
                 <strong>{t("payLoan")}</strong>
                 <span className="muted">
-                  {t("payLoanBody")}: {formatMoney(loan.repayment)}
+                  {t("payLoanBody")}: {formatMoney(flexibleTerms.repayment)}
+                </span>
+                <span className="muted">
+                  {t("flexibleRepaymentNotice")
+                    .replace("{days}", String(flexibleTerms.days))
+                    .replace("{rate}", `${Math.round(flexibleTerms.rate * 100)}%`)}
                 </span>
                 {loan.repayment_transfer_id ? (
                   <div className={`loan-alert ${loan.repayment_review_status === "rejected" ? "rejected" : "pending"}`}>
