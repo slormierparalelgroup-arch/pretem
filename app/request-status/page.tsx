@@ -91,7 +91,7 @@ function RequestStatusContent() {
     }
     const flexibleTerms = getFlexibleRepaymentTerms(loan, now);
     const paymentAmount = Number(repaymentAmount || flexibleTerms.repayment);
-    if (Number(paymentAmount.toFixed(2)) !== Number(Number(flexibleTerms.repayment).toFixed(2))) {
+    if (Math.abs(Number(paymentAmount.toFixed(2)) - Number(Number(flexibleTerms.repayment).toFixed(2))) > 0.01) {
       setMessage(t("repaymentAmountMismatch"));
       return;
     }

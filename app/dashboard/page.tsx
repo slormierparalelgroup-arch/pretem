@@ -86,7 +86,7 @@ export default function DashboardPage() {
       setMessage(t("transferIdRequired"));
       return;
     }
-    if (Number(paymentAmount.toFixed(2)) !== Number(Number(flexibleTerms.repayment).toFixed(2))) {
+    if (Math.abs(Number(paymentAmount.toFixed(2)) - Number(Number(flexibleTerms.repayment).toFixed(2))) > 0.01) {
       setMessage(t("repaymentAmountMismatch"));
       return;
     }

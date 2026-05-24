@@ -415,7 +415,7 @@ begin
   end;
   required_payment := round(loan_record.amount * (1 + effective_base_rate + security_adjustment), 2);
 
-  if round(payment_amount, 2) <> required_payment then
+  if abs(round(payment_amount, 2) - required_payment) > 0.01 then
     raise exception 'Payment amount must match the flexible payback amount: %.', required_payment;
   end if;
 
