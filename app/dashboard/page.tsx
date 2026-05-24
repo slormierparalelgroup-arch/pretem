@@ -203,7 +203,6 @@ export default function DashboardPage() {
           <button className="credit-summary-card" onClick={() => toggleCreditDetail("early")} type="button">
             <span>{t("earlyNextLimit")}</span>
             <strong>{formatCreditMoney(creditProfile.earlyLimit, profile.country)}</strong>
-            <em className="credit-badge">+30%</em>
             {openCreditDetail === "early" ? <p>{creditDetails.early}</p> : null}
           </button>
         </div>
