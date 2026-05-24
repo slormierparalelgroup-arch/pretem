@@ -749,7 +749,7 @@ export default function AdminPage() {
                   <td>
                     <DocumentButtons profile={row.profile} />
                   </td>
-                  <td>{row.profile.credit_score ?? 500}</td>
+                  <td>{row.profile.credit_score ?? 0}</td>
                   <td>{formatCreditMoney(row.creditProjection.currentLimit, row.profile.country)}</td>
                   <td>
                     {t("onTimeShort")}: {formatCreditMoney(row.creditProjection.onTimeLimit, row.profile.country)} · {t("earlyShort")}:{" "}

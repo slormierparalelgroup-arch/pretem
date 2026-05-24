@@ -26,7 +26,7 @@ export default function RequestLoanPage() {
   const [step, setStep] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("not_submitted");
-  const [creditScore, setCreditScore] = useState(500);
+  const [creditScore, setCreditScore] = useState(0);
   const [loanHistory, setLoanHistory] = useState<Loan[]>([]);
   const [hasActiveLoan, setHasActiveLoan] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
@@ -87,7 +87,7 @@ export default function RequestLoanPage() {
 
       setFullName(profile?.full_name || "");
       setPhone(profile?.phone || "");
-      setCreditScore(profile?.credit_score ?? 500);
+      setCreditScore(profile?.credit_score ?? 0);
       const nextStatus = (profile?.verification_status || "not_submitted") as VerificationStatus;
       setVerificationStatus(nextStatus);
       const isProfileComplete = Boolean(profile?.full_name?.trim() && profile?.country?.trim() && profile?.phone?.trim());

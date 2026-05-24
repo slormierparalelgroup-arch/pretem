@@ -71,7 +71,7 @@ export default function ProfilePage() {
       full_name: data?.full_name || "",
       country: data?.country || "haiti",
       phone: data?.phone || "",
-      credit_score: data?.credit_score ?? 500,
+      credit_score: data?.credit_score ?? 0,
       verification_status: (data?.verification_status || "not_submitted") as VerificationStatus,
       created_at: data?.created_at || null
     };
@@ -185,7 +185,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <dt>{t("creditScore")}</dt>
-                <dd>{profile.credit_score ?? 500}</dd>
+                <dd>{profile.credit_score ?? 0}</dd>
               </div>
               <div>
                 <dt>{t("currentCreditLimit")}</dt>

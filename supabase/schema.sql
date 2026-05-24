@@ -8,7 +8,7 @@ create table if not exists public.profiles (
   phone text,
   phone_normalized text,
   role text not null default 'user' check (role in ('user', 'admin')),
-  credit_score integer not null default 500,
+  credit_score integer not null default 0,
   verification_status text not null default 'not_submitted' check (verification_status in ('not_submitted', 'pending', 'verified', 'rejected')),
   id_photo_url text,
   selfie_url text,
@@ -43,6 +43,19 @@ add column if not exists selfie_with_id_url text;
 
 alter table public.profiles
 add column if not exists verified_at timestamptz;
+
+alter table public.profiles
+alter column credit_score set default 0;
+
+update public.profiles p
+set credit_score = 0
+where not exists (
+  select 1
+  from public.loans l
+  where l.user_id = p.id
+    and l.status = 'paid'
+    and l.repayment_review_status = 'accepted'
+);
 
 create table if not exists public.loans (
   id uuid primary key default gen_random_uuid(),

@@ -1,9 +1,8 @@
 import { DestinationCountry } from "@/lib/payout";
 import { Loan } from "@/lib/loans";
 
-export const CREDIT_MIN = 300;
-export const CREDIT_MAX = 850;
-export const STARTING_CREDIT_SCORE = 500;
+export const CREDIT_MIN = 0;
+export const STARTING_CREDIT_SCORE = 0;
 export const PENALTY_DAYS = 20;
 
 export type CreditOutcome = "early" | "on_time" | "late" | "bad";
@@ -35,18 +34,15 @@ export function formatCreditMoney(value: number, country: string | null | undefi
 }
 
 export function clampCreditScore(score: number) {
-  return Math.max(CREDIT_MIN, Math.min(CREDIT_MAX, Math.round(score)));
-}
-
-export function creditScoreDelta(outcome: CreditOutcome) {
-  if (outcome === "early") return 40;
-  if (outcome === "on_time") return 25;
-  if (outcome === "late") return -80;
-  return -100;
+  return Math.max(CREDIT_MIN, Math.round(score));
 }
 
 export function projectCreditScore(score: number, outcome: CreditOutcome) {
-  return clampCreditScore(score + creditScoreDelta(outcome));
+  if (outcome === "early" || outcome === "on_time") {
+    return score === 0 ? 10 : score;
+  }
+
+  return 0;
 }
 
 function eventDate(loan: Loan) {
@@ -78,13 +74,18 @@ export function getRepaymentOutcome(loan: Loan): CreditOutcome | null {
 }
 
 export function calculateCreditScoreFromLoans(loans: Loan[], startingScore = STARTING_CREDIT_SCORE) {
-  return loans
+  const goodPayments = loans
     .slice()
     .sort((a, b) => new Date(eventDate(a)).getTime() - new Date(eventDate(b)).getTime())
-    .reduce((score, loan) => {
+    .reduce((count, loan) => {
       const outcome = getRepaymentOutcome(loan);
-      return outcome ? projectCreditScore(score, outcome) : score;
-    }, startingScore);
+      if (outcome === "late" || outcome === "bad") return 0;
+      if (outcome === "early" || outcome === "on_time") return count + 1;
+      return count;
+    }, 0);
+
+  if (!goodPayments) return startingScore;
+  return clampCreditScore(10 + Math.floor(goodPayments / 3) * 5);
 }
 
 export function calculateCreditProfile(loans: Loan[], country: string | null | undefined, now = new Date()) {
@@ -111,21 +112,26 @@ export function calculateCreditProfile(loans: Loan[], country: string | null | u
 
   const earlyPayments = historyAfterPenalty.filter((loan) => getRepaymentOutcome(loan) === "early").length;
   const onTimePayments = historyAfterPenalty.filter((loan) => getRepaymentOutcome(loan) === "on_time").length;
+  const goodPayments = earlyPayments + onTimePayments;
   const onTimeMilestones = Math.floor(onTimePayments / 3);
-  const multiplier = isInPenalty ? 1 : Math.pow(1.2, onTimeMilestones) * Math.pow(1.4, earlyPayments);
+  const earlyMilestones = Math.floor(earlyPayments / 3);
+  const multiplier = isInPenalty ? 1 : Math.pow(1.2, onTimeMilestones) * Math.pow(1.4, earlyMilestones);
   const currentLimit = Math.round(base.amount * multiplier);
 
   const onTimeMilestonesAfterNext = Math.floor((onTimePayments + 1) / 3);
-  const onTimeLimit = Math.round(base.amount * Math.pow(1.2, onTimeMilestonesAfterNext) * Math.pow(1.4, earlyPayments));
-  const earlyLimit = Math.round(base.amount * Math.pow(1.2, onTimeMilestones) * Math.pow(1.4, earlyPayments + 1));
+  const earlyMilestonesAfterNext = Math.floor((earlyPayments + 1) / 3);
+  const onTimeLimit = Math.round(base.amount * Math.pow(1.2, onTimeMilestonesAfterNext) * Math.pow(1.4, earlyMilestones));
+  const earlyLimit = Math.round(base.amount * Math.pow(1.2, onTimeMilestones) * Math.pow(1.4, earlyMilestonesAfterNext));
 
   return {
     baseLimit: base.amount,
     currency: base.currency,
     currentLimit,
     earlyPayments,
+    goodPayments,
     onTimePayments,
     onTimeCreditsUntilIncrease: Math.max(0, 3 - (onTimePayments % 3 || 3)),
+    earlyCreditsUntilIncrease: Math.max(0, 3 - (earlyPayments % 3 || 3)),
     onTimeLimit: isInPenalty ? base.amount : onTimeLimit,
     earlyLimit: isInPenalty ? base.amount : earlyLimit,
     penaltyUntil: penaltyUntil?.toISOString() || null,
