@@ -185,7 +185,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <dt>{t("creditScore")}</dt>
-                <dd>{profile.credit_score ?? 0}</dd>
+                <dd>{creditProfile.score}</dd>
               </div>
               <div>
                 <dt>{t("currentCreditLimit")}</dt>

@@ -26,7 +26,6 @@ export default function RequestLoanPage() {
   const [step, setStep] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("not_submitted");
-  const [creditScore, setCreditScore] = useState(0);
   const [loanHistory, setLoanHistory] = useState<Loan[]>([]);
   const [hasActiveLoan, setHasActiveLoan] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
@@ -53,6 +52,7 @@ export default function RequestLoanPage() {
   const selectedRepayment = getRepaymentOption(repaymentDays);
   const creditProfile = calculateCreditProfile(loanHistory, destinationCountry);
   const creditLimit = creditProfile.currentLimit;
+  const creditScore = creditProfile.score;
   const repayment = useMemo(() => calculateRepayment(numericAmount || 0, repaymentDays), [numericAmount, repaymentDays]);
   const interest = useMemo(() => calculateInterest(numericAmount || 0, repaymentDays), [numericAmount, repaymentDays]);
   const steps = [t("basicInfo"), t("loanInfo"), t("submitRequest")];
@@ -81,13 +81,12 @@ export default function RequestLoanPage() {
       setUserId(user.id);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, country, phone, verification_status, credit_score")
+        .select("full_name, country, phone, verification_status")
         .eq("id", user.id)
         .maybeSingle();
 
       setFullName(profile?.full_name || "");
       setPhone(profile?.phone || "");
-      setCreditScore(profile?.credit_score ?? 0);
       const nextStatus = (profile?.verification_status || "not_submitted") as VerificationStatus;
       setVerificationStatus(nextStatus);
       const isProfileComplete = Boolean(profile?.full_name?.trim() && profile?.country?.trim() && profile?.phone?.trim());

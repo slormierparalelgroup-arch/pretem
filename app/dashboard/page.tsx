@@ -139,8 +139,8 @@ export default function DashboardPage() {
     return (profile?.full_name || "").trim().split(/\s+/)[0] || t("user");
   }
 
-  const creditScore = profile?.credit_score ?? 0;
   const creditProfile = calculateCreditProfile(loans, profile?.country || "haiti", now);
+  const creditScore = creditProfile.score;
   const activeLoan = loans.find((loan) => loan.status === "approved" || loan.status === "pending");
   const activeLoanDueDate = activeLoan ? getLoanDueDate(activeLoan) : null;
   const activeLoanCountdown = activeLoan ? formatDueCountdown(activeLoan, now) : null;
