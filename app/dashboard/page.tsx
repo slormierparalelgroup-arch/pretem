@@ -81,7 +81,7 @@ export default function DashboardPage() {
   async function submitRepayment(loan: Loan) {
     const transferId = (repaymentIds[loan.id] || loan.repayment_transfer_id || "").trim();
     const flexibleTerms = getFlexibleRepaymentTerms(loan, now);
-    const paymentAmount = Number(repaymentAmounts[loan.id] || loan.repayment_submitted_amount || 0);
+    const paymentAmount = Number(repaymentAmounts[loan.id] || loan.repayment_submitted_amount || flexibleTerms.repayment);
     if (!transferId) {
       setMessage(t("transferIdRequired"));
       return;
@@ -375,7 +375,7 @@ export default function DashboardPage() {
                     placeholder={t("repaymentAmount")}
                     step="0.01"
                     type="number"
-                    value={repaymentAmounts[loan.id] ?? loan.repayment_submitted_amount ?? ""}
+                    value={repaymentAmounts[loan.id] ?? loan.repayment_submitted_amount ?? flexibleTerms.repayment}
                   />
                   <input
                     className="compact-input"

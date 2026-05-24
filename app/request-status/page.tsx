@@ -89,8 +89,8 @@ function RequestStatusContent() {
       setMessage(t("transferIdRequired"));
       return;
     }
-    const paymentAmount = Number(repaymentAmount);
     const flexibleTerms = getFlexibleRepaymentTerms(loan, now);
+    const paymentAmount = Number(repaymentAmount || flexibleTerms.repayment);
     if (Number(paymentAmount.toFixed(2)) !== Number(Number(flexibleTerms.repayment).toFixed(2))) {
       setMessage(t("repaymentAmountMismatch"));
       return;
@@ -249,7 +249,7 @@ function RequestStatusContent() {
                       placeholder={t("repaymentAmount")}
                       step="0.01"
                       type="number"
-                      value={repaymentAmount}
+                      value={repaymentAmount || flexibleTerms.repayment}
                     />
                     <input
                       className="compact-input"
