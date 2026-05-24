@@ -115,13 +115,13 @@ export function calculateCreditProfile(loans: Loan[], country: string | null | u
   const goodPayments = earlyPayments + onTimePayments;
   const onTimeMilestones = Math.floor(onTimePayments / 3);
   const earlyMilestones = Math.floor(earlyPayments / 3);
-  const multiplier = isInPenalty ? 1 : Math.pow(1.2, onTimeMilestones) * Math.pow(1.4, earlyMilestones);
+  const multiplier = isInPenalty ? 1 : Math.pow(1.2, onTimeMilestones) * Math.pow(1.3, earlyMilestones);
   const currentLimit = Math.round(base.amount * multiplier);
 
   const onTimeMilestonesAfterNext = Math.floor((onTimePayments + 1) / 3);
   const earlyMilestonesAfterNext = Math.floor((earlyPayments + 1) / 3);
-  const onTimeLimit = Math.round(base.amount * Math.pow(1.2, onTimeMilestonesAfterNext) * Math.pow(1.4, earlyMilestones));
-  const earlyLimit = Math.round(base.amount * Math.pow(1.2, onTimeMilestones) * Math.pow(1.4, earlyMilestonesAfterNext));
+  const onTimeLimit = Math.round(base.amount * Math.pow(1.2, onTimeMilestonesAfterNext) * Math.pow(1.3, earlyMilestones));
+  const earlyLimit = Math.round(base.amount * Math.pow(1.2, onTimeMilestones) * Math.pow(1.3, earlyMilestonesAfterNext));
 
   return {
     baseLimit: base.amount,
