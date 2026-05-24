@@ -212,7 +212,6 @@ export default function DashboardPage() {
           <div className="credit-summary-card">
             <span>{t("creditScore")}</span>
             <strong>{creditScore}</strong>
-            <p>{t("creditScoreBody")}</p>
           </div>
           <div className="credit-summary-card">
             <span>{t("currentCreditLimit")}</span>
