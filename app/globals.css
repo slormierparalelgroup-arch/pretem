@@ -883,6 +883,7 @@ button.compact {
 }
 
 .credit-summary-card {
+  align-content: center;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -890,9 +891,10 @@ button.compact {
   cursor: pointer;
   display: grid;
   gap: 6px;
+  justify-items: center;
   min-height: 96px;
   padding: 14px;
-  text-align: left;
+  text-align: center;
 }
 
 .credit-summary-card span {
@@ -1174,9 +1176,31 @@ button.compact {
   .grid.two,
   .grid.three,
   .grid.four,
-  .credit-summary-grid,
   .loan-row {
     grid-template-columns: 1fr;
+  }
+
+  .credit-summary-grid {
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .credit-summary-card {
+    min-height: 78px;
+    padding: 9px 8px;
+  }
+
+  .credit-summary-card span {
+    font-size: 10px;
+  }
+
+  .credit-summary-card strong {
+    font-size: 18px;
+  }
+
+  .credit-summary-card p {
+    font-size: 11px;
+    line-height: 1.25;
   }
 
   .stack-actions {
