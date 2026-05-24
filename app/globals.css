@@ -909,6 +909,22 @@ button.compact {
   margin: 0;
 }
 
+.dashboard-credit-grid {
+  margin-top: 0;
+}
+
+.dashboard-credit-grid .credit-summary-card {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+  color: #1b2430;
+}
+
+.dashboard-credit-grid .credit-summary-card span,
+.dashboard-credit-grid .credit-summary-card strong,
+.dashboard-credit-grid .credit-summary-card p {
+  color: #1b2430;
+}
+
 .credit-limit-notice {
   display: grid;
   gap: 6px;

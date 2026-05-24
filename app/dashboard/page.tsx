@@ -118,22 +118,12 @@ export default function DashboardPage() {
     await loadLoans();
   }
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    router.push("/");
-  }
-
   function statusLabel(nextStatus: LoanStatus) {
     return t(`status${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
   }
 
   function filterLabel(nextStatus: "all" | LoanStatus) {
     return nextStatus === "all" ? t("allStatuses") : statusLabel(nextStatus);
-  }
-
-  function verificationLabel(nextStatus?: VerificationStatus) {
-    if (!nextStatus) return t("verificationNotSubmitted");
-    return t(`verification${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
   }
 
   function firstName() {
@@ -161,19 +151,6 @@ export default function DashboardPage() {
       <div className="toolbar">
         <div>
           <h1>{t("hiUser").replace("{name}", firstName())}</h1>
-          <p className="muted">{t("loanHistoryBody")}</p>
-          {profile?.full_name ? <p className="muted">{t("fullName")}: {profile.full_name}</p> : null}
-        </div>
-        <div className="actions">
-          <Link className="button secondary" href="/profile">
-            {t("profile")}
-          </Link>
-          <Link className="button" href="/request-loan">
-            {t("newRequest")}
-          </Link>
-          <button className="secondary" onClick={signOut}>
-            {t("signOut")}
-          </button>
         </div>
       </div>
 
@@ -194,32 +171,7 @@ export default function DashboardPage() {
       {message ? <p className="notice">{message}</p> : null}
 
       {profile ? (
-        <div className={`notice verification-notice ${profile.verification_status}`}>
-          <div>
-            <strong>
-              {t("verificationStatus")}: {verificationLabel(profile.verification_status)}
-            </strong>
-            <p>
-              {profile.verification_status === "verified" ? t("dashboardVerificationApproved") : null}
-              {profile.verification_status === "pending" ? t("dashboardVerificationPending") : null}
-              {profile.verification_status === "rejected" ? t("dashboardVerificationRejected") : null}
-              {profile.verification_status === "not_submitted" ? t("dashboardVerificationNotSubmitted") : null}
-            </p>
-          </div>
-          {profile.verification_status === "verified" ? (
-            <Link className="button compact" href="/request-loan">
-              {t("requestLoan")}
-            </Link>
-          ) : (
-            <Link className="button secondary compact" href="/verify-identity">
-              {t("verifyIdentity")}
-            </Link>
-          )}
-        </div>
-      ) : null}
-
-      {profile ? (
-        <div className="credit-summary-grid">
+        <div className="credit-summary-grid dashboard-credit-grid">
           <div className="credit-summary-card">
             <span>{t("creditScore")}</span>
             <strong>{creditScore}</strong>
