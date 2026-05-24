@@ -683,11 +683,6 @@ export default function AdminPage() {
                           ) : null}
                         </>
                       ) : null}
-                      {!loan.disbursed_at ? (
-                        <button className="danger compact" onClick={() => updateStatus(loan.id, "rejected")}>
-                          {t("rejectLoan")}
-                        </button>
-                      ) : null}
                       {loan.terms_accepted ? (
                         <button className="secondary compact" onClick={() => downloadLoanAgreement(loan, t)}>
                           {t("downloadAgreement")}
