@@ -55,6 +55,11 @@ function addDays(value: string, days: number) {
   return date;
 }
 
+function paymentsUntilNextMilestone(count: number) {
+  const remainder = count % 3;
+  return remainder === 0 ? 3 : 3 - remainder;
+}
+
 export function getRepaymentOutcome(loan: Loan): CreditOutcome | null {
   if (loan.repayment_review_status === "rejected" || loan.status === "rejected") return "bad";
   if (loan.status !== "paid" || loan.repayment_review_status !== "accepted") return null;
@@ -118,8 +123,8 @@ export function calculateCreditProfile(loans: Loan[], country: string | null | u
   const multiplier = isInPenalty ? 1 : Math.pow(1.2, onTimeMilestones) * Math.pow(1.3, earlyMilestones);
   const currentLimit = Math.round(base.amount * multiplier);
 
-  const onTimeMilestonesAfterNext = Math.floor((onTimePayments + 1) / 3);
-  const earlyMilestonesAfterNext = Math.floor((earlyPayments + 1) / 3);
+  const onTimeMilestonesAfterNext = onTimeMilestones + 1;
+  const earlyMilestonesAfterNext = earlyMilestones + 1;
   const onTimeLimit = Math.round(base.amount * Math.pow(1.2, onTimeMilestonesAfterNext) * Math.pow(1.3, earlyMilestones));
   const earlyLimit = Math.round(base.amount * Math.pow(1.2, onTimeMilestones) * Math.pow(1.3, earlyMilestonesAfterNext));
 
@@ -130,8 +135,8 @@ export function calculateCreditProfile(loans: Loan[], country: string | null | u
     earlyPayments,
     goodPayments,
     onTimePayments,
-    onTimeCreditsUntilIncrease: Math.max(0, 3 - (onTimePayments % 3 || 3)),
-    earlyCreditsUntilIncrease: Math.max(0, 3 - (earlyPayments % 3 || 3)),
+    onTimeCreditsUntilIncrease: paymentsUntilNextMilestone(onTimePayments),
+    earlyCreditsUntilIncrease: paymentsUntilNextMilestone(earlyPayments),
     onTimeLimit: isInPenalty ? base.amount : onTimeLimit,
     earlyLimit: isInPenalty ? base.amount : earlyLimit,
     penaltyUntil: penaltyUntil?.toISOString() || null,

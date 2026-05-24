@@ -150,8 +150,12 @@ export default function DashboardPage() {
     ? {
         score: String(creditScore),
         line: t("nextCreditAmount").replace("{amount}", formatCreditMoney(creditProfile.currentLimit, profile.country)),
-        onTime: t("nextCreditAmount").replace("{amount}", formatCreditMoney(creditProfile.onTimeLimit, profile.country)),
-        early: t("afterThreeEarlyPaymentsAmount").replace("{amount}", formatCreditMoney(creditProfile.earlyLimit, profile.country))
+        onTime: t("onTimeRule")
+          .replace("{count}", String(creditProfile.onTimeCreditsUntilIncrease))
+          .replace("{amount}", formatCreditMoney(creditProfile.onTimeLimit, profile.country)),
+        early: t("earlyRule")
+          .replace("{count}", String(creditProfile.earlyCreditsUntilIncrease))
+          .replace("{amount}", formatCreditMoney(creditProfile.earlyLimit, profile.country))
       }
     : {};
 
