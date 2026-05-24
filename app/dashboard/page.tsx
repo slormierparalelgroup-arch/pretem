@@ -237,7 +237,7 @@ export default function DashboardPage() {
           <div className="credit-summary-card">
             <span>{t("earlyNextLimit")}</span>
             <strong>{formatCreditMoney(creditProfile.earlyLimit, profile.country)}</strong>
-            <p>{t("nextCreditAmount").replace("{amount}", formatCreditMoney(creditProfile.earlyLimit, profile.country))}</p>
+            <p>{t("afterThreeEarlyPaymentsAmount").replace("{amount}", formatCreditMoney(creditProfile.earlyLimit, profile.country))}</p>
           </div>
         </div>
       ) : null}
