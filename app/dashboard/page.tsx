@@ -151,7 +151,7 @@ export default function DashboardPage() {
         score: String(creditScore),
         line: t("nextCreditAmount").replace("{amount}", formatCreditMoney(creditProfile.currentLimit, profile.country)),
         onTime: t("nextCreditAmount").replace("{amount}", formatCreditMoney(creditProfile.onTimeLimit, profile.country)),
-        early: t("earlyRule")
+        early: t("afterThreeEarlyPaymentsAmount").replace("{amount}", formatCreditMoney(creditProfile.earlyLimit, profile.country))
       }
     : {};
 
@@ -203,7 +203,6 @@ export default function DashboardPage() {
           <button className="credit-summary-card" onClick={() => toggleCreditDetail("early")} type="button">
             <span>{t("earlyNextLimit")}</span>
             <strong>{formatCreditMoney(creditProfile.earlyLimit, profile.country)}</strong>
-            <p>{t("afterThreeEarlyPaymentsAmount").replace("{amount}", formatCreditMoney(creditProfile.earlyLimit, profile.country))}</p>
             {openCreditDetail === "early" ? <p>{creditDetails.early}</p> : null}
           </button>
         </div>
