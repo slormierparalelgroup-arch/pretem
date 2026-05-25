@@ -848,6 +848,38 @@ input[readonly] {
   background: #f8fbff;
 }
 
+.repayment-destination {
+  background: #ffffff;
+  border: 1px dashed #bfdbfe;
+  border-radius: var(--radius);
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.repayment-destination dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.repayment-destination dl div {
+  display: grid;
+  gap: 2px;
+}
+
+.repayment-destination dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.repayment-destination dd {
+  color: var(--ink);
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .loan-status-actions {
   display: flex;
   flex-wrap: wrap;

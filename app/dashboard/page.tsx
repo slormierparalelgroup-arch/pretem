@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { calculateCreditProfile, formatCreditMoney, getRepaymentOutcome } from "@/lib/credit";
 import { formatDueCountdown, formatMoney, getFlexibleRepaymentTerms, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
 import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
+import { getRepaymentInstructions } from "@/lib/repayment";
 import { supabase } from "@/lib/supabase";
 
 const statuses: Array<"all" | LoanStatus> = ["all", "pending", "approved", "rejected", "paid", "canceled"];
@@ -316,6 +317,23 @@ export default function DashboardPage() {
               ) : null}
               {loan.status === "approved" && moneyWasSent ? (
                 <div className="loan-payment-box">
+                  {(() => {
+                    const repaymentInstructions = getRepaymentInstructions(loan.destination_country, t);
+
+                    return (
+                      <div className="repayment-destination">
+                        <strong>{t("repaymentDestination")}</strong>
+                        <dl>
+                          {repaymentInstructions.map((instruction) => (
+                            <div key={instruction.label}>
+                              <dt>{instruction.label}</dt>
+                              <dd>{instruction.value || t("notProvided")}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </div>
+                    );
+                  })()}
                   <strong>{t("payLoan")}</strong>
                   <span className="muted">
                     {t("payLoanBody")}: {formatMoney(flexibleTerms.repayment)}
