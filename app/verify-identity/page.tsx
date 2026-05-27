@@ -70,9 +70,11 @@ export default function VerifyIdentityPage() {
   async function uploadIdentityFile(file: File, type: string) {
     if (!userId) throw new Error(t("useLoginFirst"));
 
-    const extension = file.name.split(".").pop() || "jpg";
-    const path = `${userId}/identity/${type}.${extension}`;
-    const { error } = await supabase.storage.from("selfies").upload(path, file, { upsert: true });
+    const path = `${userId}/identity/${type}-${Date.now()}.jpg`;
+    const { error } = await supabase.storage.from("selfies").upload(path, file, {
+      contentType: file.type || "image/jpeg",
+      upsert: false
+    });
 
     if (error) throw error;
     return path;
