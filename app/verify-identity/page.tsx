@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { CameraCaptureField } from "@/components/CameraCaptureField";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getCurrentUser } from "@/lib/auth";
+import { notifyAdmins } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 
 type VerificationStatus = "not_submitted" | "pending" | "verified" | "rejected";
@@ -103,6 +104,8 @@ export default function VerifyIdentityPage() {
       });
 
       if (error) throw error;
+
+      await notifyAdmins(t("notificationVerificationSubmittedTitle"), t("notificationVerificationSubmittedBody"), "/admin");
 
       setStatus("pending");
       setMessage(t("verificationSubmitted"));

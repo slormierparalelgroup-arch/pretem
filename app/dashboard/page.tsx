@@ -8,6 +8,7 @@ import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
 import { calculateCreditProfile, canRequestRepaymentPause, formatCreditMoney, getRepaymentOutcome } from "@/lib/credit";
 import { formatDueCountdown, formatMoney, getFlexibleRepaymentTerms, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
+import { notifyAdmins } from "@/lib/notifications";
 import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { getRepaymentInstructions } from "@/lib/repayment";
 import { supabase } from "@/lib/supabase";
@@ -119,6 +120,7 @@ export default function DashboardPage() {
       return;
     }
     setMessage(t("repaymentSubmitted"));
+    await notifyAdmins(t("notificationRepaymentSubmittedTitle"), `${loan.reference} · ${formatMoney(paymentAmount)}`, "/admin");
     await loadLoans();
   }
 
@@ -142,6 +144,7 @@ export default function DashboardPage() {
     }
 
     setMessage(t("pauseRequestSubmitted"));
+    await notifyAdmins(t("notificationPauseRequestedTitle"), `${loan.reference} · ${requestedDays} ${t("dayUnit")}`, "/admin");
     await loadLoans();
   }
 

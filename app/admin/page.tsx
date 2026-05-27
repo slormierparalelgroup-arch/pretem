@@ -8,6 +8,7 @@ import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
 import { calculateCreditProfile, calculateCreditScoreFromLoans, formatCreditMoney } from "@/lib/credit";
 import { formatDueCountdown, formatMoney, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
+import { notifyUser } from "@/lib/notifications";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
@@ -337,6 +338,10 @@ export default function AdminPage() {
       setMessage(error.message);
       return;
     }
+    if (nextStatus === "approved") {
+      const loan = loans.find((item) => item.id === id);
+      if (loan) await notifyUser(loan.user_id, t("notificationLoanApprovedTitle"), `${loan.reference} · ${formatMoney(loan.amount)}`, "/dashboard");
+    }
     await refreshAdminData();
   }
 
@@ -359,6 +364,7 @@ export default function AdminPage() {
       setMessage(error.message);
       return;
     }
+    await notifyUser(loan.user_id, t("notificationMoneySentTitle"), `${loan.reference} · ${transferId}`, "/dashboard");
     await refreshAdminData();
   }
 
@@ -379,6 +385,12 @@ export default function AdminPage() {
     const userLoans = loans.filter((item) => item.user_id === loan.user_id && item.id !== loan.id).concat(nextLoan);
     const nextScore = calculateCreditScoreFromLoans(userLoans);
     await supabase.from("profiles").update({ credit_score: nextScore }).eq("id", loan.user_id);
+    await notifyUser(
+      loan.user_id,
+      accepted ? t("notificationRepaymentAcceptedTitle") : t("notificationRepaymentRejectedTitle"),
+      loan.reference,
+      "/dashboard"
+    );
 
     await refreshAdminData();
   }
@@ -393,6 +405,7 @@ export default function AdminPage() {
       setMessage(error.message);
       return;
     }
+    await notifyUser(loan.user_id, accepted ? t("notificationPauseAcceptedTitle") : t("notificationPauseRejectedTitle"), loan.reference, "/dashboard");
     await refreshAdminData();
   }
 
@@ -426,6 +439,12 @@ export default function AdminPage() {
       setMessage(error.message);
       return;
     }
+    await notifyUser(
+      userId,
+      nextStatus === "verified" ? t("notificationVerificationApprovedTitle") : t("notificationVerificationRejectedTitle"),
+      nextStatus === "verified" ? t("notificationVerificationApprovedBody") : t("notificationVerificationRejectedBody"),
+      nextStatus === "verified" ? "/request-loan" : "/verify-identity"
+    );
     await refreshAdminData();
   }
 

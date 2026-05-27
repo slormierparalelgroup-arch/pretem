@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { getAgreementVersion } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
 import { calculateCreditProfile, formatCreditMoney } from "@/lib/credit";
+import { notifyAdmins } from "@/lib/notifications";
 import {
   calculateInterest,
   calculateRepayment,
@@ -283,6 +284,8 @@ export default function RequestLoanPage() {
       });
 
       if (error) throw error;
+
+      await notifyAdmins(t("notificationLoanRequestedTitle"), `${fullName.trim()} · ${formatCreditMoney(numericAmount, destinationCountry)} · ${reference}`, "/admin");
 
       router.push(`/request-status?reference=${encodeURIComponent(reference)}`);
     } catch (error) {

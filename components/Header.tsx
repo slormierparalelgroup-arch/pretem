@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LanguageSelect, useLanguage } from "@/components/LanguageProvider";
+import { NotificationsMenu } from "@/components/NotificationsMenu";
 import { getCurrentUser } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
@@ -65,6 +66,7 @@ export function Header() {
       </Link>
       <div className="header-actions">
         <LanguageSelect />
+        <NotificationsMenu />
         <div className="menu-wrapper" ref={menuRef}>
           <button
             aria-expanded={isOpen}
