@@ -80,17 +80,19 @@ export default function VerifyIdentityPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!userId || !idPhoto || !selfie || !selfieWithId) return;
+    if (!userId || !idPhoto || !selfie || !selfieWithId || loading) return;
 
     setLoading(true);
     setMessage("");
 
     try {
-      const [idPhotoPath, selfiePath, selfieWithIdPath] = await Promise.all([
-        uploadIdentityFile(idPhoto, "id-photo"),
-        uploadIdentityFile(selfie, "selfie"),
-        uploadIdentityFile(selfieWithId, "selfie-with-id")
-      ]);
+      setMessage(t("uploadingIdPhoto"));
+      const idPhotoPath = await uploadIdentityFile(idPhoto, "id-photo");
+      setMessage(t("uploadingSelfie"));
+      const selfiePath = await uploadIdentityFile(selfie, "selfie");
+      setMessage(t("uploadingSelfieWithId"));
+      const selfieWithIdPath = await uploadIdentityFile(selfieWithId, "selfie-with-id");
+      setMessage(t("savingVerification"));
 
       const { error } = await supabase.rpc("submit_identity_verification", {
         id_photo_path: idPhotoPath,
@@ -126,14 +128,20 @@ export default function VerifyIdentityPage() {
         {status === "pending" ? <p className="notice">{t("verificationPendingBody")}</p> : null}
         {status === "rejected" ? <p className="notice">{t("verificationRejectedBody")}</p> : null}
 
-        <CameraCaptureField file={idPhoto} label={t("idPhoto")} name="id-photo" onChange={setIdPhoto} t={t} />
-        <CameraCaptureField file={selfie} label={t("selfie")} name="selfie" onChange={setSelfie} t={t} />
-        <CameraCaptureField file={selfieWithId} label={t("selfieWithId")} name="selfie-with-id" onChange={setSelfieWithId} t={t} />
+        {status !== "pending" && status !== "verified" ? (
+          <>
+            <CameraCaptureField file={idPhoto} label={t("idPhoto")} name="id-photo" onChange={setIdPhoto} t={t} />
+            <CameraCaptureField file={selfie} label={t("selfie")} name="selfie" onChange={setSelfie} t={t} />
+            <CameraCaptureField file={selfieWithId} label={t("selfieWithId")} name="selfie-with-id" onChange={setSelfieWithId} t={t} />
+          </>
+        ) : null}
 
         {message ? <p className="notice">{message}</p> : null}
 
         <div className="actions">
-          <button disabled={loading || !idPhoto || !selfie || !selfieWithId}>{loading ? t("submitting") : t("submitVerification")}</button>
+          {status !== "pending" && status !== "verified" ? (
+            <button disabled={loading || !idPhoto || !selfie || !selfieWithId}>{loading ? t("submitting") : t("submitVerification")}</button>
+          ) : null}
           <Link className="button secondary" href="/dashboard">
             {t("myLoans")}
           </Link>

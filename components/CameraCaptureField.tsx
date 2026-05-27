@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createVerificationImageFromVideo, prepareVerificationImage } from "@/lib/image-files";
 
 type CameraCaptureFieldProps = {
   file: File | null;
@@ -15,6 +16,7 @@ export function CameraCaptureField({ file, label, name, onChange, t }: CameraCap
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
+  const [preparing, setPreparing] = useState(false);
 
   async function openCamera() {
     setCameraError("");
@@ -42,23 +44,27 @@ export function CameraCaptureField({ file, label, name, onChange, t }: CameraCap
     setCameraOpen(false);
   }
 
-  function capturePhoto() {
+  async function capturePhoto() {
     const video = videoRef.current;
     if (!video) return;
 
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
+    setPreparing(true);
+    const nextFile = await createVerificationImageFromVideo(video, name);
+    if (nextFile) onChange(nextFile);
+    setPreparing(false);
+    closeCamera();
+  }
 
-    const context = canvas.getContext("2d");
-    if (!context) return;
+  async function selectFile(file: File | null) {
+    if (!file) {
+      onChange(null);
+      return;
+    }
 
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      onChange(new File([blob], `${name}.jpg`, { type: "image/jpeg" }));
-      closeCamera();
-    }, "image/jpeg", 0.92);
+    setPreparing(true);
+    const nextFile = await prepareVerificationImage(file, name);
+    onChange(nextFile);
+    setPreparing(false);
   }
 
   useEffect(() => closeCamera, []);
@@ -67,7 +73,7 @@ export function CameraCaptureField({ file, label, name, onChange, t }: CameraCap
     <div className="capture-field">
       <label>
         {label}
-        <input accept="image/*" capture="environment" type="file" onChange={(event) => onChange(event.target.files?.[0] ?? null)} required={!file} />
+        <input accept="image/*" capture="environment" type="file" onChange={(event) => selectFile(event.target.files?.[0] ?? null)} required={!file} />
       </label>
 
       <div className="actions">
@@ -78,15 +84,16 @@ export function CameraCaptureField({ file, label, name, onChange, t }: CameraCap
 
       {file ? (
         <p className="notice">
-          {t("selectedFile")}: {file.name}
+          {t("selectedFile")}: {file.name} ({Math.max(1, Math.round(file.size / 1024))} KB)
         </p>
       ) : null}
+      {preparing ? <p className="notice">{t("preparingPhoto")}</p> : null}
       {cameraError ? <p className="notice">{cameraError}</p> : null}
 
       {cameraOpen ? (
         <div className="camera-panel">
           <video aria-label={t("cameraPreview")} autoPlay muted playsInline ref={videoRef} />
-          <button type="button" onClick={capturePhoto}>
+          <button disabled={preparing} type="button" onClick={capturePhoto}>
             {t("capturePhoto")}
           </button>
         </div>
