@@ -253,7 +253,8 @@ export default function AdminPage() {
       return;
     }
 
-    const nextProfiles = (profileRows || []).map((profile) => ({
+    const cleanedProfiles = await cleanupDeniedVerificationImages((profileRows || []) as ProfileVerification[]);
+    const nextProfiles = cleanedProfiles.map((profile) => ({
       ...profile,
       verification_status: profile.verification_status || "not_submitted"
     })) as ProfileVerification[];
@@ -265,6 +266,46 @@ export default function AdminPage() {
 
     setProfiles(nextProfiles);
     setLoans(loansWithVerification);
+  }
+
+  async function cleanupDeniedVerificationImages(profileRows: ProfileVerification[]) {
+    const cleanedProfiles = await Promise.all(
+      profileRows.map(async (profile) => {
+        if (profile.verification_status !== "rejected") return profile;
+
+        const paths = [profile.id_photo_url, profile.selfie_url, profile.selfie_with_id_url].filter((path): path is string => Boolean(path));
+        if (!paths.length) return profile;
+
+        const { error: deleteError } = await supabase.storage.from("selfies").remove(paths);
+        if (deleteError) {
+          setMessage(deleteError.message);
+          return profile;
+        }
+
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({
+            id_photo_url: null,
+            selfie_url: null,
+            selfie_with_id_url: null
+          })
+          .eq("id", profile.id);
+
+        if (updateError) {
+          setMessage(updateError.message);
+          return profile;
+        }
+
+        return {
+          ...profile,
+          id_photo_url: null,
+          selfie_url: null,
+          selfie_with_id_url: null
+        };
+      })
+    );
+
+    return cleanedProfiles;
   }
 
   async function signVerificationPath(path: string | null) {
