@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
@@ -115,6 +115,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => new Date());
+  const deferredUserSearch = useDeferredValue(userSearch);
 
   const verificationRequests = useMemo(() => {
     return profiles.filter((profile) => {
@@ -125,12 +126,21 @@ export default function AdminPage() {
 
   const pendingLoans = useMemo(() => loans.filter((loan) => loan.status === "pending"), [loans]);
   const managedLoans = useMemo(() => loans.filter((loan) => loan.status === "approved"), [loans]);
+  const loansByUserId = useMemo(() => {
+    const map = new Map<string, AdminLoan[]>();
+    for (const loan of loans) {
+      const userLoans = map.get(loan.user_id) || [];
+      userLoans.push(loan);
+      map.set(loan.user_id, userLoans);
+    }
+    return map;
+  }, [loans]);
   const userRows = useMemo(() => {
-    const search = userSearch.trim().toLowerCase();
+    const search = deferredUserSearch.trim().toLowerCase();
 
     return profiles
       .map((profile) => {
-        const userLoans = loans.filter((loan) => loan.user_id === profile.id);
+        const userLoans = loansByUserId.get(profile.id) || [];
         const paidLoans = userLoans.filter((loan) => loan.status === "paid").length;
         const approvedLoans = userLoans.filter((loan) => loan.status === "approved").length;
         const pendingUserLoans = userLoans.filter((loan) => loan.status === "pending").length;
@@ -165,7 +175,7 @@ export default function AdminPage() {
         ];
         return values.some((value) => (value || "").toLowerCase().includes(search));
       });
-  }, [loans, profiles, userSearch]);
+  }, [deferredUserSearch, loansByUserId, profiles]);
 
   useEffect(() => {
     async function load() {
@@ -521,6 +531,17 @@ export default function AdminPage() {
     );
   }
 
+  function DocumentsSummary({ profile }: { profile: ProfileVerification }) {
+    const images = verificationImages(profile);
+    if (!images.length) return <span className="muted">{t("notProvided")}</span>;
+
+    return (
+      <button className="admin-documents-summary" onClick={() => printVerificationPacket(profile)} type="button">
+        {images.length} {t("documents")}
+      </button>
+    );
+  }
+
   function VerificationTable() {
     return (
       <div className="card admin-users-card">
@@ -781,7 +802,7 @@ export default function AdminPage() {
                     <span className={`status ${row.profile.verification_status}`}>{verificationLabel(row.profile.verification_status)}</span>
                   </td>
                   <td>
-                    <DocumentButtons profile={row.profile} />
+                    <DocumentsSummary profile={row.profile} />
                   </td>
                   <td>{row.creditProjection.score}</td>
                   <td>{formatCreditMoney(row.creditProjection.currentLimit, row.profile.country)}</td>

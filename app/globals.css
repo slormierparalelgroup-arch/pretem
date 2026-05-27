@@ -444,6 +444,15 @@ main {
   border-color: var(--accent-2);
 }
 
+.admin-documents-summary {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  color: var(--brand);
+  font-size: 12px;
+  min-height: 30px;
+  padding: 0 10px;
+}
+
 .image-modal {
   align-items: center;
   background: rgba(11, 31, 58, 0.78);
