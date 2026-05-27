@@ -329,11 +329,13 @@ export default function RequestLoanPage() {
             <label>
               {t("loanAmount")}
               <input
+                inputMode="decimal"
                 min="1"
+                pattern="[0-9]*[.,]?[0-9]*"
                 step="0.01"
-                type="number"
+                type="text"
                 value={amount}
-                onChange={(event) => setAmount(event.target.value)}
+                onChange={(event) => setAmount(event.target.value.replace(",", "."))}
                 required
               />
             </label>
