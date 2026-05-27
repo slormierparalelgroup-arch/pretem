@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
 import { calculateCreditProfile, canRequestRepaymentPause, formatCreditMoney, getRepaymentOutcome } from "@/lib/credit";
+import { CreditLimitRequest, getApprovedCreditLimitOverride, getPendingCreditLimitRequest } from "@/lib/creditLimitRequests";
 import { formatDueCountdown, formatMoney, getFlexibleRepaymentTerms, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
 import { notifyAdmins } from "@/lib/notifications";
 import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
@@ -30,6 +31,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [creditLimitRequests, setCreditLimitRequests] = useState<CreditLimitRequest[]>([]);
   const [profile, setProfile] = useState<ProfileStatus | null>(null);
   const [status, setStatus] = useState<"all" | LoanStatus>("all");
   const [repaymentIds, setRepaymentIds] = useState<Record<string, string>>({});
@@ -37,6 +39,7 @@ export default function DashboardPage() {
   const [repaymentScreenshots, setRepaymentScreenshots] = useState<Record<string, File | null>>({});
   const [pauseDays, setPauseDays] = useState<Record<string, string>>({});
   const [pauseReasons, setPauseReasons] = useState<Record<string, string>>({});
+  const [requestedLimitAmount, setRequestedLimitAmount] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => new Date());
@@ -62,12 +65,14 @@ export default function DashboardPage() {
       return;
     }
 
-    const [{ data }, { data: profileData }] = await Promise.all([
+    const [{ data }, { data: profileData }, { data: limitRequestData }] = await Promise.all([
       supabase.from("loans").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("profiles").select("email, full_name, phone, country, verification_status, verified_at, credit_score").eq("id", user.id).maybeSingle()
+      supabase.from("profiles").select("email, full_name, phone, country, verification_status, verified_at, credit_score").eq("id", user.id).maybeSingle(),
+      supabase.from("credit_limit_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
     ]);
 
     setLoans(data || []);
+    setCreditLimitRequests((limitRequestData || []) as CreditLimitRequest[]);
     setProfile((profileData as ProfileStatus | null) || null);
     setLoading(false);
   }
@@ -148,6 +153,44 @@ export default function DashboardPage() {
     await loadLoans();
   }
 
+  async function requestCreditLimitIncrease() {
+    if (!profile) return;
+    if (creditProfile.goodPayments < 3) {
+      setMessage(t("creditLimitRequestMinimum"));
+      return;
+    }
+
+    const requestedAmount = Number(requestedLimitAmount);
+    if (!Number.isFinite(requestedAmount) || requestedAmount <= effectiveCreditLimit) {
+      setMessage(t("loanAmountAboveLimit").replace("{amount}", formatCreditMoney(effectiveCreditLimit, profile.country)));
+      return;
+    }
+
+    const user = await getCurrentUser();
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    setMessage("");
+    const { error } = await supabase.from("credit_limit_requests").insert({
+      user_id: user.id,
+      country: profile.country || "haiti",
+      currency: creditProfile.currency,
+      requested_amount: requestedAmount,
+      status: "pending"
+    });
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setRequestedLimitAmount("");
+    setMessage(t("creditLimitRequestSent"));
+    await notifyAdmins(t("creditLimitRequestTitle"), `${profile.full_name || profile.email || user.email} · ${formatCreditMoney(requestedAmount, profile.country)}`, "/admin");
+    await loadLoans();
+  }
+
   function statusLabel(nextStatus: LoanStatus) {
     return t(`status${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
   }
@@ -171,6 +214,9 @@ export default function DashboardPage() {
   }
 
   const creditProfile = calculateCreditProfile(loans, profile?.country || "haiti", now);
+  const approvedLimitOverride = getApprovedCreditLimitOverride(creditLimitRequests, profile?.country || "haiti");
+  const effectiveCreditLimit = Math.max(creditProfile.currentLimit, approvedLimitOverride);
+  const pendingLimitRequest = getPendingCreditLimitRequest(creditLimitRequests, profile?.country || "haiti");
   const creditScore = creditProfile.score;
   const activeLoan = loans.find((loan) => loan.status === "approved" || loan.status === "pending");
   const activeLoanDueDate = activeLoan ? getLoanDueDate(activeLoan) : null;
@@ -178,7 +224,7 @@ export default function DashboardPage() {
   const creditDetails: Record<string, string> = profile
     ? {
         score: String(creditScore),
-        line: t("nextCreditAmount").replace("{amount}", formatCreditMoney(creditProfile.currentLimit, profile.country)),
+        line: t("nextCreditAmount").replace("{amount}", formatCreditMoney(effectiveCreditLimit, profile.country)),
         onTime: t("onTimeRule")
           .replace("{count}", String(creditProfile.onTimeCreditsUntilIncrease))
           .replace("{amount}", formatCreditMoney(creditProfile.onTimeLimit, profile.country)),
@@ -225,7 +271,7 @@ export default function DashboardPage() {
           </button>
           <button className="credit-summary-card" onClick={() => toggleCreditDetail("line")} type="button">
             <span>{t("currentCreditLimit")}</span>
-            <strong>{formatCreditMoney(creditProfile.currentLimit, profile.country)}</strong>
+            <strong>{formatCreditMoney(effectiveCreditLimit, profile.country)}</strong>
             {openCreditDetail === "line" ? <p>{creditDetails.line}</p> : null}
           </button>
           <button className="credit-summary-card" onClick={() => toggleCreditDetail("onTime")} type="button">
@@ -238,6 +284,36 @@ export default function DashboardPage() {
             <strong>{formatCreditMoney(creditProfile.earlyLimit, profile.country)}</strong>
             {openCreditDetail === "early" ? <p>{creditDetails.early}</p> : null}
           </button>
+        </div>
+      ) : null}
+
+      {profile ? (
+        <div className="panel credit-limit-request-panel">
+          <div>
+            <h2>{t("creditLimitRequest")}</h2>
+            <p className="muted">{t("creditLimitRequestBody")}</p>
+            {pendingLimitRequest ? (
+              <p className="notice">
+                {t("creditLimitRequestPending")} {t("requestedLimit")}: {formatCreditMoney(pendingLimitRequest.requested_amount, profile.country)}
+              </p>
+            ) : null}
+            {creditProfile.goodPayments < 3 ? <p className="muted">{t("creditLimitRequestMinimum")}</p> : null}
+          </div>
+          <div className="credit-limit-request-actions">
+            <input
+              disabled={Boolean(pendingLimitRequest) || creditProfile.goodPayments < 3}
+              inputMode="decimal"
+              min={effectiveCreditLimit + 1}
+              onChange={(event) => setRequestedLimitAmount(event.target.value.replace(",", "."))}
+              pattern="[0-9]*[.,]?[0-9]*"
+              placeholder={formatCreditMoney(effectiveCreditLimit + 1, profile.country)}
+              type="text"
+              value={requestedLimitAmount}
+            />
+            <button disabled={Boolean(pendingLimitRequest) || creditProfile.goodPayments < 3} onClick={requestCreditLimitIncrease} type="button">
+              {t("creditLimitRequest")}
+            </button>
+          </div>
         </div>
       ) : null}
 

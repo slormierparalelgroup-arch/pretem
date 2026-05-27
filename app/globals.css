@@ -1244,6 +1244,23 @@ button.compact {
   gap: 6px;
 }
 
+.credit-limit-request-panel {
+  align-items: end;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr minmax(220px, 320px);
+  margin-bottom: 16px;
+}
+
+.credit-limit-request-panel h2 {
+  margin-bottom: 6px;
+}
+
+.credit-limit-request-actions {
+  display: grid;
+  gap: 10px;
+}
+
 .countdown-pill {
   background: #e8f3ff;
   border: 1px solid #b9dcff;
@@ -1550,6 +1567,10 @@ button.compact {
   .credit-summary-card p {
     font-size: 11px;
     line-height: 1.25;
+  }
+
+  .credit-limit-request-panel {
+    grid-template-columns: 1fr;
   }
 
   .stack-actions {

@@ -7,12 +7,13 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
 import { calculateCreditProfile, calculateCreditScoreFromLoans, formatCreditMoney } from "@/lib/credit";
+import { CreditLimitRequest } from "@/lib/creditLimitRequests";
 import { formatDueCountdown, formatMoney, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
 import { notifyUser } from "@/lib/notifications";
 import { formatPayoutDetails, getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { supabase } from "@/lib/supabase";
 
-type AdminSection = "verification" | "loanRequests" | "loanManagement" | "users";
+type AdminSection = "verification" | "loanRequests" | "loanManagement" | "creditLimits" | "users";
 
 type VerificationStatus = "not_submitted" | "pending" | "verified" | "rejected";
 
@@ -117,11 +118,13 @@ export default function AdminPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const [loans, setLoans] = useState<AdminLoan[]>([]);
+  const [creditLimitRequests, setCreditLimitRequests] = useState<CreditLimitRequest[]>([]);
   const [profiles, setProfiles] = useState<ProfileVerification[]>([]);
   const [previewImage, setPreviewImage] = useState<PreviewImage>(null);
   const [documentPacket, setDocumentPacket] = useState<DocumentPacket>(null);
   const [section, setSection] = useState<AdminSection>("verification");
   const [userSearch, setUserSearch] = useState("");
+  const [approvedLimitAmounts, setApprovedLimitAmounts] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => new Date());
@@ -136,6 +139,7 @@ export default function AdminPage() {
 
   const pendingLoans = useMemo(() => loans.filter((loan) => loan.status === "pending"), [loans]);
   const managedLoans = useMemo(() => loans.filter((loan) => loan.status === "approved"), [loans]);
+  const pendingCreditLimitRequests = useMemo(() => creditLimitRequests.filter((request) => request.status === "pending"), [creditLimitRequests]);
   const loansByUserId = useMemo(() => {
     const map = new Map<string, AdminLoan[]>();
     for (const loan of loans) {
@@ -264,9 +268,18 @@ export default function AdminPage() {
       const nextLoan = loan as Loan;
       return addLoanVerificationStatus(nextLoan, profileByUserId.get(nextLoan.user_id));
     });
+    const { data: limitRequestRows, error: limitRequestError } = await withAdminTimeout(
+      supabase.from("credit_limit_requests").select("*").order("created_at", { ascending: false }),
+      t("adminLoadTimeout")
+    );
+    if (limitRequestError) {
+      setMessage(limitRequestError.message);
+      return;
+    }
 
     setProfiles(nextProfiles);
     setLoans(loansWithVerification);
+    setCreditLimitRequests((limitRequestRows || []) as CreditLimitRequest[]);
   }
 
   async function cleanupDeniedVerificationImages(profileRows: ProfileVerification[]) {
@@ -409,6 +422,36 @@ export default function AdminPage() {
     await refreshAdminData();
   }
 
+  async function reviewCreditLimitRequest(request: CreditLimitRequest, accepted: boolean) {
+    setMessage("");
+    const approvedAmount = Number(approvedLimitAmounts[request.id] || request.approved_amount || request.requested_amount);
+    if (accepted && (!Number.isFinite(approvedAmount) || approvedAmount <= 0)) {
+      setMessage(t("approvedLimit"));
+      return;
+    }
+
+    const { error } = await supabase
+      .from("credit_limit_requests")
+      .update({
+        approved_amount: accepted ? approvedAmount : null,
+        reviewed_at: new Date().toISOString(),
+        status: accepted ? "approved" : "rejected"
+      })
+      .eq("id", request.id);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    await notifyUser(
+      request.user_id,
+      accepted ? t("notificationCreditLimitApprovedTitle") : t("notificationCreditLimitRejectedTitle"),
+      accepted ? formatCreditMoney(approvedAmount, request.country) : formatCreditMoney(request.requested_amount, request.country),
+      "/dashboard"
+    );
+    await refreshAdminData();
+  }
+
   async function updateVerificationStatus(userId: string, nextStatus: "verified" | "rejected") {
     setMessage("");
     const profile = profiles.find((item) => item.id === userId);
@@ -474,6 +517,7 @@ export default function AdminPage() {
     if (nextSection === "verification") return verificationRequests.length;
     if (nextSection === "loanRequests") return pendingLoans.length;
     if (nextSection === "loanManagement") return managedLoans.length;
+    if (nextSection === "creditLimits") return pendingCreditLimitRequests.length;
     return userRows.length;
   }
 
@@ -481,6 +525,7 @@ export default function AdminPage() {
     if (section === "verification") return t("noVerificationItems");
     if (section === "loanRequests") return t("noLoanRequestItems");
     if (section === "loanManagement") return t("noLoanManagementItems");
+    if (section === "creditLimits") return t("noAdminItems");
     return t("noAdminItems");
   }
 
@@ -796,6 +841,70 @@ export default function AdminPage() {
     );
   }
 
+  function CreditLimitRequestsTable() {
+    const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
+
+    return (
+      <div className="card admin-users-card">
+        <div className="admin-table-wrap">
+          <table className="admin-table admin-work-table">
+            <thead>
+              <tr>
+                <th>{t("fullName")}</th>
+                <th>{t("phoneNumber")}</th>
+                <th>{t("signupCountry")}</th>
+                <th>{t("creditScore")}</th>
+                <th>{t("currentCreditLimit")}</th>
+                <th>{t("requestedLimit")}</th>
+                <th>{t("approvedLimit")}</th>
+                <th>{t("actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingCreditLimitRequests.map((request) => {
+                const profile = profileById.get(request.user_id);
+                const userLoans = loansByUserId.get(request.user_id) || [];
+                const creditProjection = calculateCreditProfile(userLoans, profile?.country || request.country);
+
+                return (
+                  <tr key={request.id}>
+                    <td>{profile?.full_name || profile?.email || t("notProvided")}</td>
+                    <td>{profile?.phone || t("notProvided")}</td>
+                    <td>{profile?.country || request.country}</td>
+                    <td>{creditProjection.score}</td>
+                    <td>{formatCreditMoney(creditProjection.currentLimit, request.country)}</td>
+                    <td>{formatCreditMoney(request.requested_amount, request.country)}</td>
+                    <td>
+                      <input
+                        className="compact-input"
+                        inputMode="decimal"
+                        onChange={(event) => setApprovedLimitAmounts((current) => ({ ...current, [request.id]: event.target.value.replace(",", ".") }))}
+                        pattern="[0-9]*[.,]?[0-9]*"
+                        placeholder={formatCreditMoney(request.requested_amount, request.country)}
+                        type="text"
+                        value={approvedLimitAmounts[request.id] ?? ""}
+                      />
+                    </td>
+                    <td>
+                      <div className="table-actions">
+                        <button className="compact success" onClick={() => reviewCreditLimitRequest(request, true)}>
+                          {t("approve")}
+                        </button>
+                        <button className="danger compact" onClick={() => reviewCreditLimitRequest(request, false)}>
+                          {t("reject")}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
   function UsersDatabase() {
     return (
       <div className="card admin-users-card">
@@ -942,7 +1051,7 @@ export default function AdminPage() {
       {!loading && !message ? (
         <>
           <div className="admin-section-tabs" aria-label={t("adminDashboard")}>
-            {(["verification", "loanRequests", "loanManagement", "users"] as AdminSection[]).map((item) => (
+            {(["verification", "loanRequests", "loanManagement", "creditLimits", "users"] as AdminSection[]).map((item) => (
               <button className={section === item ? "active" : "secondary"} key={item} onClick={() => setSection(item)} type="button">
                 {t(item)}
                 <span>{sectionCount(item)}</span>
@@ -954,6 +1063,7 @@ export default function AdminPage() {
             {section === "verification" && verificationRequests.length ? VerificationTable() : null}
             {section === "loanRequests" && pendingLoans.length ? LoansTable({ rows: pendingLoans, mode: "request" }) : null}
             {section === "loanManagement" && managedLoans.length ? LoansTable({ rows: managedLoans, mode: "management" }) : null}
+            {section === "creditLimits" && pendingCreditLimitRequests.length ? CreditLimitRequestsTable() : null}
             {section === "users" ? UsersDatabase() : null}
             {section !== "users" && sectionCount(section) === 0 ? <p className="notice">{emptySectionMessage()}</p> : null}
           </div>

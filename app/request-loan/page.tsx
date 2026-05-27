@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { getAgreementVersion } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
 import { calculateCreditProfile, formatCreditMoney } from "@/lib/credit";
+import { CreditLimitRequest, getApprovedCreditLimitOverride } from "@/lib/creditLimitRequests";
 import { notifyAdmins } from "@/lib/notifications";
 import {
   calculateInterest,
@@ -39,6 +40,7 @@ export default function RequestLoanPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("not_submitted");
   const [loanHistory, setLoanHistory] = useState<Loan[]>([]);
+  const [creditLimitRequests, setCreditLimitRequests] = useState<CreditLimitRequest[]>([]);
   const [hasActiveLoan, setHasActiveLoan] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
@@ -63,7 +65,8 @@ export default function RequestLoanPage() {
   const selectedCountry = getCountryOption(destinationCountry);
   const selectedRepayment = getRepaymentOption(repaymentDays);
   const creditProfile = calculateCreditProfile(loanHistory, destinationCountry);
-  const creditLimit = creditProfile.currentLimit;
+  const approvedLimitOverride = getApprovedCreditLimitOverride(creditLimitRequests, destinationCountry);
+  const creditLimit = Math.max(creditProfile.currentLimit, approvedLimitOverride);
   const creditScore = creditProfile.score;
   const previousLoanCount = countPriorSecurityLoans(loanHistory);
   const adjustedInterestRate = getAdjustedInterestRate(repaymentDays, previousLoanCount);
@@ -117,7 +120,13 @@ export default function RequestLoanPage() {
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
+      const { data: limitRequests } = await supabase
+        .from("credit_limit_requests")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
       setLoanHistory((history || []) as Loan[]);
+      setCreditLimitRequests((limitRequests || []) as CreditLimitRequest[]);
       const nextCooldownUntil = await findCooldownUntil(user.id);
 
       if (!isProfileComplete) {
