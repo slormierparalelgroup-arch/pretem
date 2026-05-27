@@ -22,17 +22,22 @@ export function CameraCaptureField({ file, label, name, onChange, t }: CameraCap
     setCameraError("");
 
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraError(t("cameraAccessError"));
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: name === "selfie" ? "user" : "environment" },
+        video: {
+          facingMode: { ideal: name === "selfie" ? "user" : "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 960 }
+        },
         audio: false
       });
 
       streamRef.current = stream;
       setCameraOpen(true);
-
-      window.setTimeout(() => {
-        if (videoRef.current) videoRef.current.srcObject = stream;
-      }, 0);
     } catch {
       setCameraError(t("cameraAccessError"));
     }
@@ -67,13 +72,20 @@ export function CameraCaptureField({ file, label, name, onChange, t }: CameraCap
     setPreparing(false);
   }
 
+  useEffect(() => {
+    if (cameraOpen && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => setCameraError(t("cameraAccessError")));
+    }
+  }, [cameraOpen, t]);
+
   useEffect(() => closeCamera, []);
 
   return (
     <div className="capture-field">
       <label>
         {label}
-        <input accept="image/*" capture="environment" type="file" onChange={(event) => selectFile(event.target.files?.[0] ?? null)} required={!file} />
+        <input accept="image/*" type="file" onChange={(event) => selectFile(event.target.files?.[0] ?? null)} required={!file} />
       </label>
 
       <div className="actions">
