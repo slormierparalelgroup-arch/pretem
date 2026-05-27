@@ -204,9 +204,11 @@ export default function ProfilePage() {
               </div>
             </dl>
             <p className="muted">{t("profileSecurityNote")}</p>
-            <Link className="button secondary compact" href="/verify-identity">
-              {t("verifyIdentity")}
-            </Link>
+            {profile.verification_status !== "verified" ? (
+              <Link className="button secondary compact" href="/verify-identity">
+                {t("verifyIdentity")}
+              </Link>
+            ) : null}
           </div>
         </div>
       ) : null}

@@ -12,13 +12,15 @@ export function Header() {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    async function checkAdmin() {
+    async function checkUserState() {
       const user = await getCurrentUser();
       if (!user) {
         setShowAdmin(false);
+        setShowVerification(false);
         return;
       }
 
@@ -27,12 +29,13 @@ export function Header() {
         .map((email) => email.trim().toLowerCase())
         .filter(Boolean);
 
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+      const { data: profile } = await supabase.from("profiles").select("role, verification_status").eq("id", user.id).maybeSingle();
       setShowAdmin(profile?.role === "admin" || adminEmails.includes(user.email?.toLowerCase() || ""));
+      setShowVerification(profile?.verification_status !== "verified");
     }
 
-    checkAdmin();
-    const { data } = supabase.auth.onAuthStateChange(() => checkAdmin());
+    checkUserState();
+    const { data } = supabase.auth.onAuthStateChange(() => checkUserState());
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -90,9 +93,11 @@ export function Header() {
               <Link href="/profile" onClick={() => setIsOpen(false)}>
                 {t("profile")}
               </Link>
-              <Link href="/verify-identity" onClick={() => setIsOpen(false)}>
-                {t("verifyIdentity")}
-              </Link>
+              {showVerification ? (
+                <Link href="/verify-identity" onClick={() => setIsOpen(false)}>
+                  {t("verifyIdentity")}
+                </Link>
+              ) : null}
               <Link href="/security" onClick={() => setIsOpen(false)}>
                 {t("security")}
               </Link>
