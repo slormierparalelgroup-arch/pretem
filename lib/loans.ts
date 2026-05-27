@@ -1,5 +1,6 @@
 export type LoanStatus = "pending" | "approved" | "rejected" | "paid" | "canceled";
 export type RepaymentDays = 7 | 14 | 21 | 28;
+export type RepaymentPauseStatus = "none" | "pending" | "approved" | "rejected";
 export type PayoutDetails = {
   mobile_number?: string;
   receiver?: string;
@@ -50,6 +51,12 @@ export type Loan = {
   repayment_screenshot_url: string | null;
   repayment_transfer_id: string | null;
   repayment_submitted_at: string | null;
+  repayment_pause_status: RepaymentPauseStatus | null;
+  repayment_pause_requested_days: number | null;
+  repayment_pause_reason: string | null;
+  repayment_pause_requested_at: string | null;
+  repayment_pause_reviewed_at: string | null;
+  repayment_pause_until: string | null;
   due_date: string | null;
   paid_at: string | null;
   rejected_at: string | null;
@@ -72,7 +79,21 @@ export function getAdjustedInterestRate(days: RepaymentDays, previousLoanCount: 
   return Number((option.rate + getSecurityRateAdjustment(previousLoanCount)).toFixed(2));
 }
 
-export function getFlexibleRepaymentTerms(loan: Pick<Loan, "amount" | "disbursed_at" | "interest_rate" | "repayment" | "repayment_days">, now = new Date()) {
+export function getLatePenaltyRate(loan: Pick<Loan, "due_date" | "repayment_pause_until">, now = new Date()) {
+  const dueDate = loan.repayment_pause_until || loan.due_date;
+  if (!dueDate) return 0;
+
+  const diffMs = now.getTime() - new Date(dueDate).getTime();
+  if (diffMs <= 0) return 0;
+
+  const lateDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  return Number((lateDays * 0.005).toFixed(3));
+}
+
+export function getFlexibleRepaymentTerms(
+  loan: Pick<Loan, "amount" | "disbursed_at" | "due_date" | "interest_rate" | "repayment" | "repayment_days" | "repayment_pause_until">,
+  now = new Date()
+) {
   const chosenDays = (loan.repayment_days || 7) as RepaymentDays;
   const chosenOption = getRepaymentOption(chosenDays);
   const securityAdjustment = Math.max(0, Number(loan.interest_rate || chosenOption.rate) - chosenOption.rate);
@@ -80,11 +101,13 @@ export function getFlexibleRepaymentTerms(loan: Pick<Loan, "amount" | "disbursed
     ? Math.max(1, Math.ceil((now.getTime() - new Date(loan.disbursed_at).getTime()) / (24 * 60 * 60 * 1000)))
     : chosenDays;
   const actualDays = Math.min(chosenDays, elapsedDays <= 7 ? 7 : elapsedDays <= 14 ? 14 : elapsedDays <= 21 ? 21 : 28) as RepaymentDays;
-  const actualRate = Number((getRepaymentOption(actualDays).rate + securityAdjustment).toFixed(2));
+  const latePenaltyRate = getLatePenaltyRate(loan, now);
+  const actualRate = Number((getRepaymentOption(actualDays).rate + securityAdjustment + latePenaltyRate).toFixed(3));
   const repayment = Number((Number(loan.amount || 0) * (1 + actualRate)).toFixed(2));
 
   return {
     days: actualDays,
+    latePenaltyRate,
     rate: actualRate,
     repayment: loan.disbursed_at ? repayment : Number(loan.repayment || repayment)
   };
@@ -126,10 +149,18 @@ export function getLoanDueDate(loan: Pick<Loan, "disbursed_at" | "due_date" | "r
   return null;
 }
 
-export function formatDueCountdown(loan: Pick<Loan, "disbursed_at" | "due_date" | "repayment_days" | "status">, now = new Date()) {
+export function getEffectiveDueDate(loan: Pick<Loan, "disbursed_at" | "due_date" | "repayment_days" | "repayment_pause_until">) {
+  if (loan.repayment_pause_until) return new Date(loan.repayment_pause_until);
+  return getLoanDueDate(loan);
+}
+
+export function formatDueCountdown(
+  loan: Pick<Loan, "disbursed_at" | "due_date" | "repayment_days" | "repayment_pause_until" | "status">,
+  now = new Date()
+) {
   if (!loan.disbursed_at) return { state: "pending", text: "" };
 
-  const dueDate = getLoanDueDate(loan);
+  const dueDate = getEffectiveDueDate(loan);
   if (!dueDate) return { state: "pending", text: "" };
 
   const diffMs = dueDate.getTime() - now.getTime();

@@ -880,6 +880,24 @@ input[readonly] {
   overflow-wrap: anywhere;
 }
 
+.repayment-pause-box,
+.repayment-pause-admin {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 10px;
+}
+
+.repayment-pause-box textarea {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+  min-height: 70px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
 .loan-status-actions {
   display: flex;
   flex-wrap: wrap;

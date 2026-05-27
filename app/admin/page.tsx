@@ -323,6 +323,19 @@ export default function AdminPage() {
     await refreshAdminData();
   }
 
+  async function reviewPauseRequest(loan: AdminLoan, accepted: boolean) {
+    setMessage("");
+    const { error } = await supabase.rpc("review_repayment_pause", {
+      accepted,
+      loan_id: loan.id
+    });
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    await refreshAdminData();
+  }
+
   async function updateVerificationStatus(userId: string, nextStatus: "verified" | "rejected") {
     setMessage("");
     const patch =
@@ -614,6 +627,16 @@ export default function AdminPage() {
                         {countdown.state === "late" ? t("pastDueBy") : t("countdown")}: {countdown.text}
                       </span>
                     ) : null}
+                    {loan.repayment_pause_status && loan.repayment_pause_status !== "none" ? (
+                      <span className="muted table-subtext">
+                        {t("repaymentPause")}: {t(`pauseStatus${loan.repayment_pause_status.charAt(0).toUpperCase()}${loan.repayment_pause_status.slice(1)}`)}
+                      </span>
+                    ) : null}
+                    {loan.repayment_pause_until ? (
+                      <span className="muted table-subtext">
+                        {t("pauseUntil")}: {new Date(loan.repayment_pause_until).toLocaleDateString()}
+                      </span>
+                    ) : null}
                   </td>
                   <td>
                     {getDestinationLabel(loan.destination_country, t)} {loan.currency ? `(${loan.currency})` : ""}
@@ -680,6 +703,20 @@ export default function AdminPage() {
                             <button className="danger compact" onClick={() => reviewRepayment(loan, false)}>
                               {t("denyRepayment")}
                             </button>
+                          ) : null}
+                          {loan.repayment_pause_status === "pending" ? (
+                            <div className="repayment-pause-admin">
+                              <span className="muted table-subtext">
+                                {t("pauseRequested")}: {loan.repayment_pause_requested_days || "?"} {t("dayUnit")}
+                              </span>
+                              {loan.repayment_pause_reason ? <span className="muted table-subtext">{loan.repayment_pause_reason}</span> : null}
+                              <button className="compact" onClick={() => reviewPauseRequest(loan, true)}>
+                                {t("acceptPause")}
+                              </button>
+                              <button className="danger compact" onClick={() => reviewPauseRequest(loan, false)}>
+                                {t("denyPause")}
+                              </button>
+                            </div>
                           ) : null}
                         </>
                       ) : null}

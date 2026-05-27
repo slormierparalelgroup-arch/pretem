@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { downloadLoanAgreement } from "@/lib/agreement";
 import { getCurrentUser } from "@/lib/auth";
-import { calculateCreditProfile, formatCreditMoney, getRepaymentOutcome } from "@/lib/credit";
+import { calculateCreditProfile, canRequestRepaymentPause, formatCreditMoney, getRepaymentOutcome } from "@/lib/credit";
 import { formatDueCountdown, formatMoney, getFlexibleRepaymentTerms, getLoanDueDate, Loan, LoanStatus } from "@/lib/loans";
 import { getDestinationLabel, getPayoutMethodLabel } from "@/lib/payout";
 import { getRepaymentInstructions } from "@/lib/repayment";
@@ -34,6 +34,8 @@ export default function DashboardPage() {
   const [repaymentIds, setRepaymentIds] = useState<Record<string, string>>({});
   const [repaymentAmounts, setRepaymentAmounts] = useState<Record<string, string>>({});
   const [repaymentScreenshots, setRepaymentScreenshots] = useState<Record<string, File | null>>({});
+  const [pauseDays, setPauseDays] = useState<Record<string, string>>({});
+  const [pauseReasons, setPauseReasons] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => new Date());
@@ -117,6 +119,29 @@ export default function DashboardPage() {
       return;
     }
     setMessage(t("repaymentSubmitted"));
+    await loadLoans();
+  }
+
+  async function requestPause(loan: Loan) {
+    const requestedDays = Number(pauseDays[loan.id] || loan.repayment_pause_requested_days || 7);
+    if (requestedDays < 1 || requestedDays > 14) {
+      setMessage(t("pauseDaysError"));
+      return;
+    }
+
+    setMessage("");
+    const { error } = await supabase.rpc("request_repayment_pause", {
+      loan_id: loan.id,
+      pause_reason: pauseReasons[loan.id] || "",
+      requested_days: requestedDays
+    });
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage(t("pauseRequestSubmitted"));
     await loadLoans();
   }
 
@@ -252,6 +277,7 @@ export default function DashboardPage() {
               const flexibleTerms = getFlexibleRepaymentTerms(loan, now);
               const moneyWasSent = Boolean(loan.disbursed_at || loan.disbursement_transfer_id);
               const result = paymentResult(loan, countdown);
+              const pauseAvailable = canRequestRepaymentPause(loans, loan, now);
 
               return (
                 <>
@@ -313,6 +339,16 @@ export default function DashboardPage() {
                       {countdown.state === "late" ? t("pastDueBy") : t("countdown")}: {countdown.text}
                     </span>
                   ) : null}
+                  {loan.repayment_pause_status && loan.repayment_pause_status !== "none" ? (
+                    <span>
+                      {t("repaymentPause")}: {t(`pauseStatus${loan.repayment_pause_status.charAt(0).toUpperCase()}${loan.repayment_pause_status.slice(1)}`)}
+                    </span>
+                  ) : null}
+                  {loan.repayment_pause_until ? (
+                    <span>
+                      {t("pauseUntil")}: {new Date(loan.repayment_pause_until).toLocaleDateString()}
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
               {loan.status === "approved" && moneyWasSent ? (
@@ -343,6 +379,11 @@ export default function DashboardPage() {
                       .replace("{days}", String(flexibleTerms.days))
                       .replace("{rate}", `${Math.round(flexibleTerms.rate * 100)}%`)}
                   </span>
+                  {flexibleTerms.latePenaltyRate > 0 ? (
+                    <span className="muted">
+                      {t("lateDailyInterestNotice").replace("{rate}", `${(flexibleTerms.latePenaltyRate * 100).toFixed(1)}%`)}
+                    </span>
+                  ) : null}
                   {loan.repayment_transfer_id ? (
                     <div className={`loan-alert ${loan.repayment_review_status === "rejected" ? "rejected" : "pending"}`}>
                       <strong>{t("repaymentSubmittedNotice")}</strong>
@@ -391,6 +432,29 @@ export default function DashboardPage() {
                         {t("submitRepaymentScreenshot")}
                       </button>
                     </>
+                  ) : null}
+                  {pauseAvailable ? (
+                    <div className="repayment-pause-box">
+                      <strong>{t("requestPause")}</strong>
+                      <span className="muted">{t("requestPauseBody")}</span>
+                      <input
+                        className="compact-input"
+                        max="14"
+                        min="1"
+                        onChange={(event) => setPauseDays((values) => ({ ...values, [loan.id]: event.target.value }))}
+                        placeholder={t("pauseDays")}
+                        type="number"
+                        value={pauseDays[loan.id] ?? "7"}
+                      />
+                      <textarea
+                        onChange={(event) => setPauseReasons((values) => ({ ...values, [loan.id]: event.target.value }))}
+                        placeholder={t("pauseReason")}
+                        value={pauseReasons[loan.id] ?? ""}
+                      />
+                      <button className="secondary compact" onClick={() => requestPause(loan)}>
+                        {t("submitPauseRequest")}
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               ) : null}

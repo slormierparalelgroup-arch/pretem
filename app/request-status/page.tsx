@@ -245,6 +245,11 @@ function RequestStatusContent() {
                     .replace("{days}", String(flexibleTerms.days))
                     .replace("{rate}", `${Math.round(flexibleTerms.rate * 100)}%`)}
                 </span>
+                {flexibleTerms.latePenaltyRate > 0 ? (
+                  <span className="muted">
+                    {t("lateDailyInterestNotice").replace("{rate}", `${(flexibleTerms.latePenaltyRate * 100).toFixed(1)}%`)}
+                  </span>
+                ) : null}
                 {loan.repayment_transfer_id ? (
                   <div className={`loan-alert ${loan.repayment_review_status === "rejected" ? "rejected" : "pending"}`}>
                     <strong>{t("repaymentSubmittedNotice")}</strong>

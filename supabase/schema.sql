@@ -87,6 +87,12 @@ create table if not exists public.loans (
   repayment_screenshot_url text,
   repayment_transfer_id text,
   repayment_submitted_at timestamptz,
+  repayment_pause_status text not null default 'none' check (repayment_pause_status in ('none', 'pending', 'approved', 'rejected')),
+  repayment_pause_requested_days integer check (repayment_pause_requested_days between 1 and 14),
+  repayment_pause_reason text,
+  repayment_pause_requested_at timestamptz,
+  repayment_pause_reviewed_at timestamptz,
+  repayment_pause_until timestamptz,
   due_date timestamptz,
   paid_at timestamptz,
   rejected_at timestamptz,
@@ -151,7 +157,28 @@ alter table public.loans
 add column if not exists repayment_submitted_at timestamptz;
 
 alter table public.loans
+add column if not exists repayment_pause_status text not null default 'none' check (repayment_pause_status in ('none', 'pending', 'approved', 'rejected'));
+
+alter table public.loans
+add column if not exists repayment_pause_requested_days integer check (repayment_pause_requested_days between 1 and 14);
+
+alter table public.loans
+add column if not exists repayment_pause_reason text;
+
+alter table public.loans
+add column if not exists repayment_pause_requested_at timestamptz;
+
+alter table public.loans
+add column if not exists repayment_pause_reviewed_at timestamptz;
+
+alter table public.loans
+add column if not exists repayment_pause_until timestamptz;
+
+alter table public.loans
 add column if not exists rejected_at timestamptz;
+
+alter table public.profiles
+alter column credit_score type numeric using credit_score::numeric;
 
 update public.profiles
 set phone_normalized = regexp_replace(coalesce(phone, ''), '\D', '', 'g')
@@ -165,6 +192,23 @@ where phone_normalized is not null and phone_normalized <> '';
 create unique index if not exists loans_one_unpaid_per_user
 on public.loans (user_id)
 where status in ('pending', 'approved');
+
+create or replace function public.good_paid_loan_count(target_user_id uuid)
+returns integer
+language sql
+security definer
+set search_path = public
+as $$
+  select count(*)::integer
+  from public.loans
+  where user_id = target_user_id
+    and status = 'paid'
+    and repayment_review_status = 'accepted'
+    and (
+      due_date is null
+      or coalesce(repayment_submitted_at, paid_at) <= coalesce(repayment_pause_until, due_date)
+    );
+$$;
 
 create or replace function public.prevent_blocked_loan_request()
 returns trigger
@@ -197,6 +241,7 @@ begin
         )
       )
       and coalesce(rejected_at, repayment_submitted_at, created_at) > now() - interval '20 days'
+      and public.good_paid_loan_count(new.user_id) < 6
   ) then
     raise exception 'Because of bad payment history, you must wait 20 days before requesting another loan.';
   end if;
@@ -349,6 +394,106 @@ $$;
 revoke all on function public.cancel_pending_loan(uuid) from public;
 grant execute on function public.cancel_pending_loan(uuid) to authenticated;
 
+create or replace function public.request_repayment_pause(
+  loan_id uuid,
+  requested_days integer,
+  pause_reason text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  loan_record public.loans%rowtype;
+  effective_due_date timestamptz;
+begin
+  if requested_days is null or requested_days < 1 or requested_days > 14 then
+    raise exception 'Pause must be between 1 and 14 days.';
+  end if;
+
+  select *
+  into loan_record
+  from public.loans
+  where id = loan_id
+    and user_id = auth.uid()
+    and status = 'approved';
+
+  if not found then
+    raise exception 'Loan not found.';
+  end if;
+
+  if public.good_paid_loan_count(auth.uid()) < 6 then
+    raise exception 'A pause is available after 6 well paid loans.';
+  end if;
+
+  if loan_record.repayment_transfer_id is not null then
+    raise exception 'This loan already has repayment proof.';
+  end if;
+
+  if loan_record.repayment_pause_status in ('pending', 'approved') then
+    raise exception 'This loan already has a pause request.';
+  end if;
+
+  effective_due_date := coalesce(loan_record.repayment_pause_until, loan_record.due_date);
+  if effective_due_date is null or effective_due_date > now() then
+    raise exception 'A pause can be requested after the due date.';
+  end if;
+
+  update public.loans
+  set
+    repayment_pause_status = 'pending',
+    repayment_pause_requested_days = requested_days,
+    repayment_pause_reason = nullif(trim(pause_reason), ''),
+    repayment_pause_requested_at = now(),
+    repayment_pause_reviewed_at = null,
+    repayment_pause_until = null
+  where id = loan_id
+    and user_id = auth.uid();
+end;
+$$;
+
+revoke all on function public.request_repayment_pause(uuid, integer, text) from public;
+grant execute on function public.request_repayment_pause(uuid, integer, text) to authenticated;
+
+create or replace function public.review_repayment_pause(
+  loan_id uuid,
+  accepted boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  requested_days integer;
+begin
+  if not public.is_admin() then
+    raise exception 'Admin access required.';
+  end if;
+
+  select repayment_pause_requested_days
+  into requested_days
+  from public.loans
+  where id = loan_id
+    and repayment_pause_status = 'pending';
+
+  if not found then
+    raise exception 'Pause request not found.';
+  end if;
+
+  update public.loans
+  set
+    repayment_pause_status = case when accepted then 'approved' else 'rejected' end,
+    repayment_pause_reviewed_at = now(),
+    repayment_pause_until = case when accepted then now() + make_interval(days => requested_days) else null end
+  where id = loan_id;
+end;
+$$;
+
+revoke all on function public.review_repayment_pause(uuid, boolean) from public;
+grant execute on function public.review_repayment_pause(uuid, boolean) to authenticated;
+
 create or replace function public.submit_loan_repayment(
   loan_id uuid,
   payment_amount numeric,
@@ -367,6 +512,9 @@ declare
   elapsed_days integer;
   effective_days integer;
   effective_base_rate numeric;
+  late_penalty_rate numeric;
+  effective_due_date timestamptz;
+  late_days integer;
   required_payment numeric;
 begin
   if payment_amount is null or payment_amount <= 0 then
@@ -413,7 +561,15 @@ begin
     when 21 then 0.28
     else 0.36
   end;
-  required_payment := round(loan_record.amount * (1 + effective_base_rate + security_adjustment), 2);
+
+  effective_due_date := coalesce(loan_record.repayment_pause_until, loan_record.due_date);
+  if effective_due_date is not null and now() > effective_due_date then
+    late_days := floor(extract(epoch from (now() - effective_due_date)) / 86400.0)::integer;
+  else
+    late_days := 0;
+  end if;
+  late_penalty_rate := late_days * 0.005;
+  required_payment := round(loan_record.amount * (1 + effective_base_rate + security_adjustment + late_penalty_rate), 2);
 
   if abs(round(payment_amount, 2) - required_payment) > 0.01 then
     raise exception 'Payment amount must match the flexible payback amount: %.', required_payment;
