@@ -879,10 +879,10 @@ export default function AdminPage() {
           </div>
 
           <div className="loan-list">
-            {section === "verification" && verificationRequests.length ? <VerificationTable /> : null}
-            {section === "loanRequests" && pendingLoans.length ? <LoansTable rows={pendingLoans} mode="request" /> : null}
-            {section === "loanManagement" && managedLoans.length ? <LoansTable rows={managedLoans} mode="management" /> : null}
-            {section === "users" ? <UsersDatabase /> : null}
+            {section === "verification" && verificationRequests.length ? VerificationTable() : null}
+            {section === "loanRequests" && pendingLoans.length ? LoansTable({ rows: pendingLoans, mode: "request" }) : null}
+            {section === "loanManagement" && managedLoans.length ? LoansTable({ rows: managedLoans, mode: "management" }) : null}
+            {section === "users" ? UsersDatabase() : null}
             {section !== "users" && sectionCount(section) === 0 ? <p className="notice">{emptySectionMessage()}</p> : null}
           </div>
         </>
