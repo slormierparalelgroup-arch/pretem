@@ -198,6 +198,151 @@ main {
   min-height: 420px;
 }
 
+.home-page {
+  display: grid;
+  gap: 28px;
+  margin: 0 auto;
+  max-width: 1120px;
+  padding: 38px 24px 54px;
+}
+
+.home-hero {
+  align-items: stretch;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.85fr);
+  min-height: 520px;
+}
+
+.home-hero-content {
+  align-content: center;
+  display: grid;
+  gap: 18px;
+}
+
+.home-hero h1 {
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 0.98;
+  margin: 0;
+  max-width: 780px;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.home-mini-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.home-mini-steps span {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 9px 11px;
+}
+
+.home-hero-media {
+  border-radius: var(--radius);
+  min-height: 420px;
+  overflow: hidden;
+  position: relative;
+}
+
+.home-hero-media::after {
+  background: linear-gradient(140deg, rgba(11, 61, 117, 0.18), rgba(245, 158, 66, 0.12));
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.home-hero-media img {
+  object-fit: cover;
+}
+
+.home-credit-band {
+  background: var(--accent);
+  border: 1px solid rgba(245, 158, 66, 0.45);
+  border-radius: var(--radius);
+  color: white;
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.home-credit-band div {
+  background: rgba(255, 255, 255, 0.06);
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+}
+
+.home-credit-band span {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.home-credit-band strong {
+  color: var(--accent-2);
+  font-size: 24px;
+}
+
+.home-trust-card {
+  display: grid;
+  gap: 10px;
+}
+
+.home-trust-card svg {
+  color: var(--accent-2);
+}
+
+.home-trust-card p {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.home-final {
+  align-items: center;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 22px;
+}
+
+.home-final div {
+  display: grid;
+  gap: 8px;
+}
+
+.home-final h2,
+.home-final p {
+  margin: 0;
+}
+
+.home-final svg {
+  color: var(--accent-2);
+}
+
+.home-final p {
+  color: var(--muted);
+}
+
 .auth-page {
   align-items: center;
   display: grid;
@@ -1254,11 +1399,46 @@ button.compact {
   }
 
   .hero,
+  .home-hero,
   .grid.two,
   .grid.three,
   .grid.four,
   .loan-row {
     grid-template-columns: 1fr;
+  }
+
+  .home-page {
+    gap: 22px;
+    padding: 28px 18px 42px;
+  }
+
+  .home-hero {
+    min-height: 0;
+  }
+
+  .home-hero h1 {
+    font-size: clamp(36px, 11vw, 52px);
+  }
+
+  .home-hero-media {
+    min-height: 280px;
+  }
+
+  .home-credit-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-credit-band div {
+    padding: 14px;
+  }
+
+  .home-credit-band strong {
+    font-size: 20px;
+  }
+
+  .home-final {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .credit-summary-grid {
