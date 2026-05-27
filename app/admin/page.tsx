@@ -50,6 +50,14 @@ type PreviewImage = {
   url: string;
 } | null;
 
+type DocumentPacket = {
+  displayName: string;
+  email: string;
+  phone: string;
+  status: string;
+  images: Array<AvailableVerificationImage & { filename: string; url: string }>;
+} | null;
+
 function withAdminTimeout<T>(promise: PromiseLike<T>, message: string) {
   return new Promise<T>((resolve, reject) => {
     const timeout = window.setTimeout(() => reject(new Error(message)), 15000);
@@ -110,6 +118,7 @@ export default function AdminPage() {
   const [loans, setLoans] = useState<AdminLoan[]>([]);
   const [profiles, setProfiles] = useState<ProfileVerification[]>([]);
   const [previewImage, setPreviewImage] = useState<PreviewImage>(null);
+  const [documentPacket, setDocumentPacket] = useState<DocumentPacket>(null);
   const [section, setSection] = useState<AdminSection>("verification");
   const [userSearch, setUserSearch] = useState("");
   const [message, setMessage] = useState("");
@@ -402,75 +411,24 @@ export default function AdminPage() {
     setPreviewImage({ filename, label, url });
   }
 
-  function escapeHtml(value: string) {
-    return value
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  async function printVerificationPacket(profile: ProfileVerification) {
+  async function openDocumentPacket(profile: ProfileVerification) {
     const images = verificationImages(profile);
     const signedImages = await Promise.all(
       images.map(async (image) => ({
         ...image,
+        filename: `${profile.full_name || profile.email || "pretem"}-${image.label}.jpg`,
         url: await signVerificationPath(image.path)
       }))
     );
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) {
-      setMessage(t("printWindowBlocked"));
-      return;
-    }
 
     const displayName = profile.full_name || profile.email || t("notProvided");
-    const imageHtml = signedImages
-      .filter((image): image is AvailableVerificationImage & { url: string } => Boolean(image.url))
-      .map(
-        (image) => `
-          <section class="photo">
-            <h2>${escapeHtml(image.label)}</h2>
-            <img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.label)}" />
-          </section>
-        `
-      )
-      .join("");
-
-    printWindow.document.write(`
-      <!doctype html>
-      <html>
-        <head>
-          <title>PRETEM ${escapeHtml(displayName)}</title>
-          <style>
-            body { color: #0b1f3a; font-family: Arial, sans-serif; margin: 28px; }
-            h1 { margin: 0 0 6px; }
-            .meta { border-bottom: 1px solid #d6e3ef; display: grid; gap: 6px; margin-bottom: 20px; padding-bottom: 16px; }
-            .photo { break-inside: avoid; margin: 0 0 24px; page-break-inside: avoid; }
-            .photo h2 { font-size: 16px; margin: 0 0 10px; }
-            img { border: 1px solid #d6e3ef; display: block; max-height: 820px; max-width: 100%; object-fit: contain; }
-          </style>
-        </head>
-        <body>
-          <h1>PRETEM Verification</h1>
-          <div class="meta">
-            <strong>${escapeHtml(displayName)}</strong>
-            <span>${escapeHtml(profile.phone || "")}</span>
-            <span>${escapeHtml(profile.email || "")}</span>
-            <span>${escapeHtml(verificationLabel(profile.verification_status))}</span>
-          </div>
-          ${imageHtml}
-          <script>
-            window.addEventListener("load", () => {
-              window.focus();
-              window.print();
-            });
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    setDocumentPacket({
+      displayName,
+      email: profile.email || t("notProvided"),
+      images: signedImages.filter((image): image is AvailableVerificationImage & { filename: string; url: string } => Boolean(image.url)),
+      phone: profile.phone || t("notProvided"),
+      status: verificationLabel(profile.verification_status)
+    });
   }
 
   function DocumentPreviewCard({
@@ -536,7 +494,7 @@ export default function AdminPage() {
     if (!images.length) return <span className="muted">{t("notProvided")}</span>;
 
     return (
-      <button className="admin-documents-summary" onClick={() => printVerificationPacket(profile)} type="button">
+      <button className="admin-documents-summary" onClick={() => openDocumentPacket(profile)} type="button">
         {images.length} {t("documents")}
       </button>
     );
@@ -584,8 +542,8 @@ export default function AdminPage() {
                           </button>
                         ) : null}
                         {images.length ? (
-                          <button className="secondary compact" onClick={() => printVerificationPacket(profile)}>
-                            {t("printVerification")}
+                          <button className="secondary compact" onClick={() => openDocumentPacket(profile)}>
+                            {t("open")}
                           </button>
                         ) : null}
                       </div>
@@ -863,6 +821,41 @@ export default function AdminPage() {
               </div>
             </div>
             <Image alt={previewImage.label} height={900} src={previewImage.url} unoptimized width={1200} />
+          </div>
+        </div>
+      ) : null}
+
+      {documentPacket ? (
+        <div className="image-modal" role="dialog" aria-modal="true" aria-label={documentPacket.displayName}>
+          <div className="image-modal-panel document-packet-panel">
+            <div className="toolbar">
+              <div>
+                <strong>{documentPacket.displayName}</strong>
+                <p className="muted">
+                  {documentPacket.phone} · {documentPacket.email} · {documentPacket.status}
+                </p>
+              </div>
+              <button className="secondary compact" onClick={() => setDocumentPacket(null)} type="button">
+                {t("close")}
+              </button>
+            </div>
+            <div className="document-packet-grid">
+              {documentPacket.images.map((image) => (
+                <article className="document-packet-item" key={image.path}>
+                  <div className="toolbar">
+                    <strong>{image.label}</strong>
+                    <a
+                      className="button compact"
+                      download={image.filename.replace(/[^a-z0-9.-]+/gi, "-").toLowerCase()}
+                      href={image.url}
+                    >
+                      {t("download")}
+                    </a>
+                  </div>
+                  <Image alt={image.label} height={900} src={image.url} unoptimized width={1200} />
+                </article>
+              ))}
+            </div>
           </div>
         </div>
       ) : null}
