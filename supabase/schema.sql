@@ -783,3 +783,9 @@ using (
     or public.is_admin()
   )
 );
+
+drop policy if exists "Admins delete denied verification images" on storage.objects;
+create policy "Admins delete denied verification images"
+on storage.objects for delete
+to authenticated
+using (bucket_id = 'selfies' and public.is_admin());

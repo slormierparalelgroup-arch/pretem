@@ -357,6 +357,19 @@ export default function AdminPage() {
 
   async function updateVerificationStatus(userId: string, nextStatus: "verified" | "rejected") {
     setMessage("");
+    const profile = profiles.find((item) => item.id === userId);
+
+    if (nextStatus === "rejected" && profile) {
+      const paths = verificationImages(profile).map((image) => image.path);
+      if (paths.length) {
+        const { error: deleteError } = await supabase.storage.from("selfies").remove(paths);
+        if (deleteError) {
+          setMessage(deleteError.message);
+          return;
+        }
+      }
+    }
+
     const patch =
       nextStatus === "verified"
         ? { verification_status: nextStatus, verified_at: new Date().toISOString() }
