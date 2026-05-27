@@ -129,7 +129,7 @@ export default function AdminPage() {
   const verificationRequests = useMemo(() => {
     return profiles.filter((profile) => {
       const hasDocuments = Boolean(profile.id_photo_url || profile.selfie_url || profile.selfie_with_id_url);
-      return profile.verification_status !== "verified" && (profile.verification_status !== "not_submitted" || hasDocuments);
+      return profile.verification_status === "pending" || (profile.verification_status === "not_submitted" && hasDocuments);
     });
   }, [profiles]);
 
@@ -360,7 +360,13 @@ export default function AdminPage() {
     const patch =
       nextStatus === "verified"
         ? { verification_status: nextStatus, verified_at: new Date().toISOString() }
-        : { verification_status: nextStatus, verified_at: null };
+        : {
+            id_photo_url: null,
+            selfie_url: null,
+            selfie_with_id_url: null,
+            verification_status: nextStatus,
+            verified_at: null
+          };
     const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
     if (error) {
       setMessage(error.message);
